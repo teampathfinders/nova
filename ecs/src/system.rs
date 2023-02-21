@@ -1,12 +1,15 @@
+use std::marker::PhantomData;
+
 use crate::{ComponentQuery, QueryFilter, Query};
 
 pub trait System {}
 
-impl<Q: ComponentQuery, F: QueryFilter> System for for<'a> fn(Query<'a, Q, F>) {}
-impl<Q: ComponentQuery, F: QueryFilter> System for SimpleSystem<Q, F> {}
+impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for SystemCallable<Q, F, S> {}
 
-pub struct SimpleSystem<Q: ComponentQuery, F: QueryFilter> {
-    func: Box<dyn FnMut(Query<Q, F>)>
+pub struct SystemCallable<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> {
+    f: S,
+    _q: PhantomData<Q>,
+    _f: PhantomData<F>
 }
 
 pub trait IntoSystem<Q: ComponentQuery, F: QueryFilter> {
@@ -15,8 +18,8 @@ pub trait IntoSystem<Q: ComponentQuery, F: QueryFilter> {
     fn into_system(this: Self) -> Box<dyn System>;
 }
 
-impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static> IntoSystem<Q, F> for SimpleSystem<Q, F> {
-    type System = SimpleSystem<Q, F>;
+impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static> IntoSystem<Q, F> for SystemCallable<Q, F, S> {
+    type System = SystemCallable<Q, F, S>;
 
     fn into_system(this: Self) -> Box<dyn System> {
         Box::new(this)
@@ -29,11 +32,13 @@ pub struct Systems {
 
 impl Systems {
     pub fn register<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static>(&mut self, system: S) {
-        let simple = SimpleSystem {
-            func: Box::new(system)
+        let simple = SystemCallable {
+            f: system,
+            _q: PhantomData,
+            _f: PhantomData
         };
 
-        let system = SimpleSystem::into_system(simple);
+        let system = SystemCallable::into_system(simple);
         self.systems.push(system);
     }
 }

@@ -27,6 +27,5 @@ fn example() {
     ));
 
     world.system(print_position);
-
     world.despawn(entity);
 }
