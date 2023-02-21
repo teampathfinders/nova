@@ -1,14 +1,6 @@
 use common::Vector3f;
 
-use crate::{Component, Entity, Query, World};
-
-#[derive(Debug)]
-pub struct Transform {
-    pub position: Vector3f,
-    pub rotation: Vector3f,
-}
-
-impl Component for Transform {}
+use crate::{Component, Entity, Query, World, Transform, System};
 
 #[derive(Debug)]
 pub struct Gravity {

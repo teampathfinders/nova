@@ -1,4 +1,4 @@
-use crate::{Entities, Entity, Components, Collection, ComponentQuery, QueryFilter, Query, Systems};
+use crate::{Entities, Entity, Components, Collection, Systems, System, ComponentQuery, Query, QueryFilter};
 
 pub struct World {
     entities: Entities,
@@ -16,7 +16,7 @@ impl World {
     }
 
     /// Summons a new entity with the given components.
-    pub fn spawn<C: Collection>(&mut self, collection: C) -> Entity {
+    pub fn spawn(&mut self, collection: impl Collection) -> Entity {
         let entity = self.entities.register();        
         collection.insert(entity, &mut self.components);
 
@@ -28,9 +28,9 @@ impl World {
         self.components.deregister(entity);
     }
 
-    pub fn system<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)>(&mut self, system: S) {
-
-    }   
+    pub fn system<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static>(&mut self, system: S) {
+        self.systems.register(system);
+    }    
 }
 
 impl Default for World {
