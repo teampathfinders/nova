@@ -1,6 +1,6 @@
 use common::Vector3f;
 
-use crate::{Component, Entity, Query, World, Transform, System};
+use crate::{Changed, Component, Entity, Query, System, Transform, World};
 
 #[derive(Debug)]
 pub struct Gravity {
@@ -9,7 +9,7 @@ pub struct Gravity {
 
 impl Component for Gravity {}
 
-fn print_position(query: Query<(Entity, &Transform)>) {
+fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
     for (entity, position) in &query {
         println!("Entity {entity:?} is at position {position:?}");
     }
@@ -27,5 +27,6 @@ fn example() {
     ));
 
     world.system(print_position);
+    world.test();
     world.despawn(entity);
 }

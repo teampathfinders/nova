@@ -31,6 +31,10 @@ impl World {
     pub fn system<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static>(&mut self, system: S) {
         self.systems.register(system);
     }    
+
+    pub fn test(&mut self) {
+        self.systems.execute_each();
+    }
 }
 
 impl Default for World {
