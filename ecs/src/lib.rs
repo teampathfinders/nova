@@ -6,7 +6,6 @@ use common::glob_export;
 #[cfg(test)]
 mod test;
 
-glob_export!(entity);
-glob_export!(query);
-glob_export!(system);
 glob_export!(world);
+glob_export!(entity);
+glob_export!(component);

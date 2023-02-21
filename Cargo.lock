@@ -1000,6 +1000,7 @@ dependencies = [
  "console-subscriber",
  "ctr",
  "dashmap",
+ "ecs",
  "flate2",
  "jsonwebtoken",
  "lazy_static",

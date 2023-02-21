@@ -1,37 +1,30 @@
-pub trait Bundle {
-    fn get(&self) -> Vec<&dyn Component>;
-}
+use std::collections::HashMap;
 
-impl<T: Component> Bundle for T {
-    fn get(&self) -> Vec<&dyn Component> {
-        vec![self]
-    }
-}
-
-impl<T: Component> Bundle for [T] {
-    fn get(&self) -> Vec<&dyn Component> {
-        self.iter().map(|c| c as &dyn Component).collect::<Vec<_>>()
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Entity(usize);
 
-impl From<usize> for Entity {
-    fn from(id: usize) -> Self {
-        Self(id)
-    } 
+pub struct Entities {
+    /// List of entities.
+    entities: Vec<Entity>,
+    /// Maps entity IDs to indices in the entities vector.
+    handle_map: HashMap<Entity, usize>,
+    /// IDs that were freed by destroyed entities,
+    /// these can be reused to keep the entities array packed.
+    freed: Vec<usize>
+}   
+
+impl Entities {
+    pub fn alloc(&mut self) -> Entity {
+        todo!()
+    }
 }
 
-/// Holds a list of all components of a type.
-/// This is done to improve cache locality, all similar components are put next to each other.
-pub(crate) struct ComponentPack<T: Component> {
-    components: Vec<T>
+impl Default for Entities {
+    fn default() -> Entities {
+        Entities {
+            entities: Vec::new(),
+            handle_map: HashMap::new(),
+            freed: Vec::new()
+        }
+    }
 }
-
-pub(crate) struct EntityComponents {
-    // TODO: This could probably be done using a vector instead of a map.
-    // components: Vec<>
-}
-
-pub trait Component {}

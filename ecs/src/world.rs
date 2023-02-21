@@ -1,28 +1,30 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{any::{TypeId, Any}, collections::HashMap, sync::atomic::{AtomicUsize, Ordering}};
 
-use parking_lot::RwLock;
-
-use crate::{Entity, Component, Bundle};
+use crate::{Entities, Entity, Components, Collection};
 
 pub struct World {
-    latest_id: AtomicUsize,
-    entities: RwLock<Vec<Entity>>
+    entities: Entities,
+    components: Components
 }
 
 impl World {
-    pub fn new() -> Self {
-        Self {
-            latest_id: AtomicUsize::new(0),
-            entities: RwLock::new(Vec::new())
-        }
+    pub fn new() -> World {
+        World::default()
     }
 
-    pub fn summon<B: Bundle>(&self, components: B) -> Entity {
-        let entity = Entity::from(
-            self.latest_id.fetch_add(1, Ordering::Relaxed)
-        );
+    pub fn summon<C: Collection>(&mut self, components: C) -> Entity {
+        let entity = self.entities.alloc();
         
-        self.entities.write().push(entity);
+
         entity
+    }       
+}
+
+impl Default for World {
+    fn default() -> World {
+        World {
+            entities: Entities::default(),
+            components: Components::default()
+        }
     }
 }
