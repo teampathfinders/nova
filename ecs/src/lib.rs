@@ -9,3 +9,4 @@ mod test;
 glob_export!(world);
 glob_export!(entity);
 glob_export!(component);
+glob_export!(query);

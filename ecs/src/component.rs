@@ -116,7 +116,3 @@ impl<C0: Component + 'static, C1: Component + 'static> Collection for (C0, C1) {
         registry.register(entity, self.1);
     }
 }
-
-// pub struct Query<'a, T> {
-//     query: &'a [T]
-// }
