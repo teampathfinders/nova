@@ -3,7 +3,8 @@ members = [
     "nbt",
     "common",
     "server",
-    "level"
+    "level",
+    "ecs"
 ]
 
 [profile.release]
