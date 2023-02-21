@@ -1,6 +1,6 @@
 use common::Vector3f;
 
-use crate::{Component, Entity, Query, World};
+use crate::{Component, Entity, World};
 
 #[derive(Debug)]
 pub struct Transform {
@@ -10,17 +10,26 @@ pub struct Transform {
 
 impl Component for Transform {}
 
-fn print_position(query: Query<(Entity, &Transform)>) {
-    for (entity, position) in query {
-        println!("Entity {entity:?} is at position {position:?}");
-    }
+#[derive(Debug)]
+pub struct Gravity {
+    pub strength: f32
 }
+
+impl Component for Gravity {}
+
+// fn print_position(query: Query<(Entity, &Transform)>) {
+//     for (entity, position) in query {
+//         println!("Entity {entity:?} is at position {position:?}");
+//     }
+// }
 
 #[test]
 fn example() {
     let mut world = World::new();
-    let entity = world.summon(Transform {
+    let entity = world.summon((Transform {
         position: Vector3f::zero(),
         rotation: Vector3f::zero(),
-    });
+    }, Gravity { strength: 9.81 }));
+
+    println!("{entity:?}");
 }

@@ -7,39 +7,42 @@ pub trait Component {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ComponentId(usize);
 
-pub struct ComponentInfo {
-    type_id: TypeId
-}
-
+#[derive(Debug)]
 pub struct ComponentStorage<C: Component> {
+    indices: HashMap<Entity, usize>,
     storage: Vec<Option<C>>    
 }
 
 impl<C: Component> ComponentStorage<C> {
     pub fn new() -> ComponentStorage<C> {
         ComponentStorage {
+            indices: HashMap::new(),
             storage: Vec::new()
         }
     }
 
-    pub fn register(&mut self, component: C) -> ComponentId {
+    pub fn register(&mut self, entity: Entity, component: C) {
         // Find gaps
         let gap = self.storage
             .iter()
             .enumerate()
             .find_map(|(i, c)| if c.is_none() { Some(i) } else { None });
 
-        if let Some(id) = gap {
+        let id = if let Some(id) = gap {
             self.storage[id] = Some(component);
-            ComponentId(id)
+            id
         } else {
             self.storage.push(Some(component));
-            ComponentId(self.storage.len() - 1)
-        }
+            self.storage.len() - 1
+        };
+
+        self.indices.insert(entity, id);
     }
 
-    pub fn unregister(&mut self, id: ComponentId) {
-        self.storage[id.0] = None;
+    pub fn unregister(&mut self, entity: Entity) {
+        if let Some(index) = self.indices.remove(&entity) {
+            self.storage[index] = None;
+        }
     } 
 }
 
@@ -74,7 +77,7 @@ pub struct Components {
 }
 
 impl Components {
-    pub fn register<C: Component + 'static>(&mut self, component: C) -> ComponentId {
+    pub fn register<C: Component + 'static>(&mut self, entity: Entity, component: C) {
         let type_id = TypeId::of::<C>();
         let entry = self.storage
             .entry(type_id)
@@ -85,7 +88,7 @@ impl Components {
             unreachable!();
         }
 
-        storage.unwrap().register(component)
+        storage.unwrap().register(entity, component);
     }
 }
 
@@ -98,11 +101,22 @@ impl Default for Components {
 }
 
 pub trait Collection {
-    fn insert(&self, callback: &mut impl FnMut(TypeId));
+    fn insert(self, entity: Entity, registry: &mut Components);
 }
 
 impl<C: Component + 'static> Collection for C {
-    fn insert(&self, callback: &mut impl FnMut(TypeId)) {
-        callback(TypeId::of::<C>())
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self);
     }
 }
+
+impl<C0: Component + 'static, C1: Component + 'static> Collection for (C0, C1) {
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self.0);
+        registry.register(entity, self.1);
+    }
+}
+
+// pub struct Query<'a, T> {
+//     query: &'a [T]
+// }
