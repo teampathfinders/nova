@@ -1,5 +1,3 @@
-use std::{any::{TypeId, Any}, collections::HashMap, sync::atomic::{AtomicUsize, Ordering}};
-
 use crate::{Entities, Entity, Components, Collection};
 
 pub struct World {
@@ -13,7 +11,7 @@ impl World {
     }
 
     pub fn summon<C: Collection>(&mut self, components: C) -> Entity {
-        let entity = self.entities.alloc();
+        let entity = self.entities.register();
         
 
         entity
