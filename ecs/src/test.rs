@@ -1,11 +1,19 @@
+use common::Vector3f;
+
 use crate::{Component, Entity, Query, World};
 
 #[derive(Debug)]
-struct Transform {
-    position: [f32; 3],
+pub struct Transform {
+    pub position: Vector3f,
+    pub rotation: Vector3f,
 }
 
 impl Component for Transform {}
+
+#[derive(Debug)]
+pub struct Gravity;
+
+impl Component for Gravity {}
 
 fn print_position(query: Query<(Entity, &Transform)>) {
     for (entity, position) in query {
@@ -16,5 +24,13 @@ fn print_position(query: Query<(Entity, &Transform)>) {
 #[test]
 fn example() {
     let world = World::new();
-    let entity = world.spawn();
+    // let entity = world.summon(Transform {
+    //     position: Vector3f::zero(),
+    //     rotation: Vector3f::zero()
+    // });
+
+    let entity = world.summon(Transform {
+        position: Vector3f::zero(),
+        rotation: Vector3f::zero(),
+    });
 }

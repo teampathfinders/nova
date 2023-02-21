@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 dashmap = "5.4.0"
+parking_lot = "0.12.1"

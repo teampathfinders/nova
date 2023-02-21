@@ -6,22 +6,7 @@ use common::glob_export;
 #[cfg(test)]
 mod test;
 
+glob_export!(entity);
 glob_export!(query);
-
-#[derive(Debug, Copy, Clone)]
-pub struct Entity {}
-
-#[derive(Debug)]
-pub struct World {}
-
-impl World {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn spawn(&self) -> Entity {
-        todo!()
-    }
-}
-
-pub trait Component {}
+glob_export!(system);
+glob_export!(world);
