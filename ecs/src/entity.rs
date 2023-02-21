@@ -58,7 +58,7 @@ impl Entities {
         }
     }
 
-    /// Unregisters an entity previously created with [`alloc`](Entities::alloc).
+    /// Unregisters an entity previously created with [`register`](Entities::register).
     pub fn deregister(&mut self, entity: Entity) {
         self.entities[entity.0.get() - 1] = None;
     }

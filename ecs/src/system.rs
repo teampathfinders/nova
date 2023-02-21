@@ -16,12 +16,18 @@ impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for System
 /// 
 /// Implementing the System directly for function pointers doesn't work.
 /// This is due to every closure and function pointer having a different type.
-/// Structs have the system type and therefore can be used for the System trait.
+/// Structs have the same type and therefore can be used for the System trait.
 pub struct SystemCallable<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> {
     f: S,
     // The Q and F generics are used in the function trait, but the compiler still complains about them...
     _q: PhantomData<Q>,
     _f: PhantomData<F>
+}
+
+impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> SystemCallable<Q, F, S> {
+    fn call(&mut self, query: Query<Q, F>) {
+        (self.f)(query)
+    }
 }
 
 pub trait IntoCallable<Q: ComponentQuery, F: QueryFilter> {
@@ -52,12 +58,6 @@ impl Systems {
 
         let system = SystemCallable::into_callable(converter);
         self.systems.push(system);
-    }
-
-    pub fn execute_each(&self) {
-        for system in &self.systems {
-            println!("query: {:?}", system.query());
-        }
     }
 }
 

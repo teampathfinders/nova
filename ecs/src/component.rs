@@ -53,10 +53,10 @@ pub trait Storage {
     fn deregister(&mut self, entity: Entity);
 }
 
-impl<T: Component + 'static> Storage for ComponentStorage<T> {
+impl<C: Component + 'static> Storage for ComponentStorage<C> {
     #[inline]
     fn type_id(&self) -> TypeId {
-        TypeId::of::<T>()
+        TypeId::of::<C>()
     }
 
     #[inline]

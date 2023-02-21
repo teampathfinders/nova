@@ -15,6 +15,30 @@ fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
     }
 }
 
+struct Player {
+    name: String,
+}
+
+impl Component for Player {}
+
+impl Player {
+    fn kill(&self) {}
+}
+
+struct Health {
+    pub amount: u32,
+}
+
+impl Component for Health {}
+
+fn health_system(query: Query<(&Player, &Health), Changed<Health>>) {
+    for (player, health) in &query {
+        if health.amount == 0 {
+            player.kill()
+        }
+    }
+}
+
 #[test]
 fn example() {
     let mut world = World::new();
@@ -27,6 +51,5 @@ fn example() {
     ));
 
     world.system(print_position);
-    world.test();
     world.despawn(entity);
 }
