@@ -1,5 +1,17 @@
 use std::num::NonZeroUsize;
 
+use crate::World;
+
+// pub struct EntityMut<'w> {
+//     world: &'w mut World,
+//     entity: Entity
+// }
+
+// pub struct EntityRef<'w> {
+//     world: &'w World,
+//     entity: Entity
+// }
+
 /// An entity is just a unique ID.
 /// The ID is nonzero so that the Rust compiler can use optimisations for the Option type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -47,8 +59,8 @@ impl Entities {
     }
 
     /// Unregisters an entity previously created with [`alloc`](Entities::alloc).
-    pub fn unregister(&mut self, entity: Entity) {
-        self.entities[entity.0.get()] = None;
+    pub fn deregister(&mut self, entity: Entity) {
+        self.entities[entity.0.get() - 1] = None;
     }
 }
 

@@ -37,12 +37,6 @@ impl<C: Component> ComponentStorage<C> {
         };
 
         self.indices.insert(entity, id);
-    }
-
-    pub fn unregister(&mut self, entity: Entity) {
-        if let Some(index) = self.indices.remove(&entity) {
-            self.storage[index] = None;
-        }
     } 
 }
 
@@ -52,6 +46,11 @@ pub trait Storage {
     fn type_id(&self) -> TypeId;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    /// Deregister is put in the trait so downcasting is not needed.
+    /// This is not possible with [`register`](ComponentStorage::register) because
+    /// it contains a generic parameter.
+    fn deregister(&mut self, entity: Entity);
 }
 
 impl<T: Component + 'static> Storage for ComponentStorage<T> {
@@ -68,6 +67,12 @@ impl<T: Component + 'static> Storage for ComponentStorage<T> {
     #[inline]
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn deregister(&mut self, entity: Entity) {
+        if let Some(index) = self.indices.remove(&entity) {
+            self.storage[index] = None;
+        }
     }
 }
 
@@ -89,6 +94,12 @@ impl Components {
         }
 
         storage.unwrap().register(entity, component);
+    }
+
+    pub fn deregister(&mut self, entity: Entity) {
+        for (_, v) in self.storage.iter_mut() {
+            v.deregister(entity);
+        }
     }
 }
 

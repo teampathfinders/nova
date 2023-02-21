@@ -26,7 +26,7 @@ fn print_position(query: Query<(Entity, &Transform)>) {
 #[test]
 fn example() {
     let mut world = World::new();
-    let entity = world.summon((
+    let entity = world.spawn((
         Transform {
             position: Vector3f::zero(),
             rotation: Vector3f::zero(),
@@ -34,5 +34,7 @@ fn example() {
         Gravity { strength: 9.81 },
     ));
 
-    println!("{entity:?}");
+    world.system(print_position);
+
+    world.despawn(entity);
 }
