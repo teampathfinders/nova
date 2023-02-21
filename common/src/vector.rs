@@ -1,4 +1,5 @@
 use bytes::{BufMut, BytesMut};
+use num_traits::Zero;
 use std::ops::{Deref, DerefMut};
 
 use crate::VarInt;
@@ -6,36 +7,40 @@ use crate::VarInt;
 /// Type and size independent vector type
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Vector<T, const N: usize> {
-    components: [T; N],
+pub struct Vector<T, const N: usize>([T; N]);
+
+impl<T: Copy + Zero, const N: usize> Vector<T, N> {
+    pub fn zero() -> Self {
+        Self([T::zero(); N])
+    }
 }
 
 impl<T: Clone, const N: usize> Vector<T, N> {
     pub fn components(&self) -> [T; N] {
-        self.components.clone()
+        self.0.clone()
     }
 }
 
 impl<T, const N: usize> Vector<T, N> {
     pub fn components_ref(&self) -> &[T; N] {
-        &self.components
+        &self.0
     }
 
     pub fn components_mut(&mut self) -> &mut [T; N] {
-        &mut self.components
+        &mut self.0
     }
 }
 
 impl<T, const N: usize> From<[T; N]> for Vector<T, N> {
     fn from(components: [T; N]) -> Self {
-        Self { components }
+        Self(components)
     }
 }
 
 impl<const N: usize> Vector<f32, N> {
     pub fn serialize(&self, buffer: &mut BytesMut) {
         for i in 0..N {
-            buffer.put_f32(self.components[i]);
+            buffer.put_f32(self.0[i]);
         }
     }
 }
