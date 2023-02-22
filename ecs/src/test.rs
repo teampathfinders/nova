@@ -10,9 +10,9 @@ pub struct Gravity {
 impl Component for Gravity {}
 
 fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
-    for (entity, position) in &query {
-        println!("Entity {entity:?} is at position {position:?}");
-    }
+    // for (entity, position) in &query {
+    //     println!("Entity {entity:?} is at position {position:?}");
+    // }
 }
 
 struct Player {
@@ -31,12 +31,10 @@ struct Health {
 
 impl Component for Health {}
 
-fn health_system(query: Query<(&Player, &Health), Changed<Health>>) {
-    for (player, health) in &query {
-        if health.amount == 0 {
-            player.kill()
-        }
-    }
+fn health_system(query: Query<(&Player, &mut Health), Changed<Health>>) {
+    // for (player, health) in &query {
+    //     health.amount -= 1;
+    // }
 }
 
 #[test]
@@ -51,5 +49,8 @@ fn example() {
     ));
 
     world.system(print_position);
+    world.system(health_system);
+
+    world.execute();
     world.despawn(entity);
 }

@@ -28,9 +28,13 @@ impl World {
         self.components.deregister(entity);
     }
 
-    pub fn system<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static>(&mut self, system: S) {
+    pub fn system<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, system: S) {
         self.systems.register(system);
-    }    
+    }
+
+    pub fn execute(&self) {
+        self.systems.call_all();
+    } 
 }
 
 impl Default for World {
