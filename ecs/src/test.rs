@@ -56,19 +56,18 @@ fn example_system(
 #[test]
 fn example() {
     let mut world = World::new();
-    let entity = world.spawn((
-        Transform {
-            position: Vector3f::zero(),
-            rotation: Vector3f::zero(),
-        },
-        Gravity { strength: 9.81 },
-    ));
-
-    let entity = world.spawn(());
 
     world.system(print_position);
     world.system(example_system);
 
+    world.spawn((
+        Transform {
+            position: Vector3f::zero(),
+            rotation: Vector3f::zero(),
+        },
+        Health { amount: 20 },
+        Player { name: "XxCubedEarthxX".to_owned() },
+    ));
+
     world.execute();
-    world.despawn(entity);
 }

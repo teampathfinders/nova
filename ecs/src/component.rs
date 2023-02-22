@@ -132,21 +132,72 @@ pub trait Collection {
     fn insert(self, entity: Entity, registry: &mut Components);
 }
 
-impl<C: Component + 'static> Collection for C {
-    fn insert(self, entity: Entity, registry: &mut Components) {
-        registry.register(entity, self);
-    }
-}
-
 impl Collection for () {
     fn insert(self, _entity: Entity, _registry: &mut Components) {
         // do nothing.
     }
 }
 
-impl<C0: Component + 'static, C1: Component + 'static> Collection for (C0, C1) {
+impl<C0> Collection for C0 
+    where C0: Component + 'static
+{
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self);
+    }
+}
+
+impl<C0, C1> Collection for (C0, C1)
+    where
+        C0: Component + 'static,
+        C1: Component + 'static
+{
     fn insert(self, entity: Entity, registry: &mut Components) {
         registry.register(entity, self.0);
         registry.register(entity, self.1);
+    }
+}
+
+impl<C0, C1, C2> Collection for (C0, C1, C2) 
+    where 
+        C0: Component + 'static,
+        C1: Component + 'static,
+        C2: Component + 'static
+{
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self.0);
+        registry.register(entity, self.1);
+        registry.register(entity, self.2);
+    }
+}
+
+impl<C0, C1, C2, C3> Collection for (C0, C1, C2, C3) 
+    where
+        C0: Component + 'static,
+        C1: Component + 'static,
+        C2: Component + 'static,
+        C3: Component + 'static
+{
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self.0);
+        registry.register(entity, self.1);
+        registry.register(entity, self.2);
+        registry.register(entity, self.3);
+    }
+}
+
+impl<C0, C1, C2, C3, C4> Collection for (C0, C1, C2, C3, C4) 
+    where
+        C0: Component + 'static,
+        C1: Component + 'static,
+        C2: Component + 'static,
+        C3: Component + 'static,
+        C4: Component + 'static
+{
+    fn insert(self, entity: Entity, registry: &mut Components) {
+        registry.register(entity, self.0);
+        registry.register(entity, self.1);
+        registry.register(entity, self.2);
+        registry.register(entity, self.3);
+        registry.register(entity, self.4);
     }
 }

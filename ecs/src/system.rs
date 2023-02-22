@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor};
+use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor, World, Components};
 
 /// Describes the variant of a system.
 /// 
@@ -26,6 +26,10 @@ pub(crate) trait System {
     /// The system variant.
     /// This can be ether of the values of [`SystemVariant`].
     fn variant(&self) -> SystemVariant;
+    /// Calls the system.
+    /// 
+    /// The system itself then queries the world.
+    fn call(&self, world: &mut Components);
 }
 
 /// Helper trait to convert a [`SharedSystem`] or [`ExclusiveSystem`] into a boxed [`System`].
@@ -60,6 +64,10 @@ impl<Q: QueryComponents, F: QueryFilters, S: Fn(Query<Q, F>)> System for SharedS
     fn query(&self) -> QueryDescriptor {
         Query::<Q, F>::descriptor()
     }
+
+    fn call(&self, world: &mut Components) {
+        dbg!("shared");
+    }
 }
 
 impl<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: Fn(Query<Q, F>) + 'static> IntoSystem for SharedSystem<Q, F, S> {
@@ -91,6 +99,10 @@ impl<Q: QueryComponents, F: QueryFilters, S: FnMut(Query<Q, F>)> System for Excl
     fn query(&self) -> QueryDescriptor {
         Query::<Q, F>::descriptor()
     }
+
+    fn call(&self, world: &mut Components) {
+        dbg!("exclusive");
+    }
 }
 
 impl<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: FnMut(Query<Q, F>) + 'static> IntoSystem for ExclusiveSystem<Q, F, S> {
@@ -100,6 +112,7 @@ impl<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: FnMut(Query<Q, 
 }
 
 /// Keeps track of the currently active systems.
+#[derive(Default)]
 pub(crate) struct Systems {
     systems: Vec<Box<dyn System>>
 }
@@ -121,20 +134,14 @@ impl Systems {
         self.systems.push(system);
     }
 
-    pub fn call_all(&self) {
+    pub fn call_all(&self, components: &mut Components) {
         self.systems.iter().for_each(|s| {
-            let meta = s.query();
+            let descriptor = s.query();
             let variant = s.variant();
 
-            println!("System is {variant:?} with {meta:#?}");
-        });
-    }
-}
+            s.call(components);
 
-impl Default for Systems {
-    fn default() -> Systems {
-        Systems {
-            systems: Vec::new()
-        }
+            println!("System is {variant:?} with {descriptor:#?}");
+        });
     }
 }

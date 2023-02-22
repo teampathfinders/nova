@@ -1,5 +1,25 @@
 use std::num::NonZeroUsize;
 
+use crate::World;
+
+#[derive(Copy, Clone)]
+pub struct EntityRef<'w> {
+    pub(crate) entity: Entity,
+    pub(crate) world: &'w World
+}
+
+impl EntityRef<'_> {
+    pub fn id(self) -> Entity {
+        self.entity
+    }
+}
+
+impl From<EntityRef<'_>> for Entity {
+    fn from(value: EntityRef<'_>) -> Entity {
+        value.entity
+    }
+}
+
 /// An entity is just a unique ID.
 /// The ID is nonzero so that the Rust compiler can use optimisations for the Option type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -7,6 +27,7 @@ use std::num::NonZeroUsize;
 pub struct Entity(NonZeroUsize);
 
 /// List of currently alive entities.
+#[derive(Debug)]
 pub(crate) struct Entities {
     /// List of entities.
     entities: Vec<Option<Entity>>,
