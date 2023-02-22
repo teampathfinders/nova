@@ -1,6 +1,6 @@
 use std::{any::{TypeId, Any}, collections::HashMap};
 
-use crate::Entity;
+use crate::{Entity, QueryDescriptor, QueryComponents, QueryFilters, Query};
 
 /// Represents a component that can be queried by a system.
 pub trait Component {}
@@ -95,6 +95,20 @@ pub struct Components {
 }
 
 impl Components {
+    pub(crate) fn query<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
+        let descriptor = Query::<Q, F>::DESCRIPTOR;
+        let mut gathered = Vec::new();
+
+        Query::from(gathered)
+    }
+
+    pub(crate) fn query_mut<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
+        let descriptor = Query::<Q, F>::DESCRIPTOR;
+        let mut gathered = Vec::new();
+
+        Query::from(gathered)
+    }
+
     /// Adds a component to the registry for the specified entity.
     pub(crate) fn register<C: Component + 'static>(&mut self, entity: Entity, component: C) {
         let type_id = TypeId::of::<C>();

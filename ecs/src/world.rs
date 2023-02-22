@@ -1,4 +1,4 @@
-use crate::{Entities, Entity, Components, Collection, Systems, System, QueryComponents, Query, QueryFilters, EntityRef};
+use crate::{Entities, Entity, Components, Collection, Systems, System, QueryComponents, Query, QueryFilters, EntityRef, SystemVariant};
 
 pub struct World {
     entities: Entities,
@@ -47,7 +47,16 @@ impl World {
     }
 
     pub fn execute(&mut self) {
-        self.systems.call_all(&mut self.components);
+        self.systems.iter_mut().for_each(|system| {
+            match system.variant() {
+                SystemVariant::Shared => {
+                    system.call(&self.components);
+                },
+                SystemVariant::Exclusive => {
+                    system.call_mut(&mut self.components);
+                }
+            }
+        })
     }
 }
 

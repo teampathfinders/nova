@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
 use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor, World, Components};
 
@@ -21,15 +21,21 @@ pub(crate) enum SystemVariant {
 }
 
 pub(crate) trait System {
-    /// A descriptor of the query that this system has requested.
-    fn query(&self) -> QueryDescriptor;
     /// The system variant.
     /// This can be ether of the values of [`SystemVariant`].
-    fn variant(&self) -> SystemVariant;
-    /// Calls the system.
     /// 
+    /// This is a function instead of a constant, because the trait would otherwise not be object safe.
+    fn variant(&self) -> SystemVariant;
+    /// Calls a shared system.
     /// The system itself then queries the world.
-    fn call(&self, world: &mut Components);
+    fn call(&self, components: &Components) {
+        unimplemented!()
+    }
+    /// Calls an exclusive system.
+    /// The system itself then queries the world.
+    fn call_mut(&mut self, components: &mut Components) {
+        unimplemented!()
+    }
 }
 
 /// Helper trait to convert a [`SharedSystem`] or [`ExclusiveSystem`] into a boxed [`System`].
@@ -61,12 +67,9 @@ impl<Q: QueryComponents, F: QueryFilters, S: Fn(Query<Q, F>)> System for SharedS
         SystemVariant::Shared
     }
 
-    fn query(&self) -> QueryDescriptor {
-        Query::<Q, F>::descriptor()
-    }
-
-    fn call(&self, world: &mut Components) {
-        dbg!("shared");
+    fn call(&self, components: &Components) {
+        let query = components.query::<Q, F>();
+        (self.callable)(query);
     }
 }
 
@@ -96,12 +99,9 @@ impl<Q: QueryComponents, F: QueryFilters, S: FnMut(Query<Q, F>)> System for Excl
         SystemVariant::Exclusive
     }
 
-    fn query(&self) -> QueryDescriptor {
-        Query::<Q, F>::descriptor()
-    }
-
-    fn call(&self, world: &mut Components) {
-        dbg!("exclusive");
+    fn call_mut(&mut self, components: &mut Components) {
+        let query = components.query_mut();
+        (self.callable)(query);
     }
 }
 
@@ -133,15 +133,18 @@ impl Systems {
 
         self.systems.push(system);
     }
+}
 
-    pub fn call_all(&self, components: &mut Components) {
-        self.systems.iter().for_each(|s| {
-            let descriptor = s.query();
-            let variant = s.variant();
+impl Deref for Systems {
+    type Target = Vec<Box<dyn System>>;
 
-            s.call(components);
+    fn deref(&self) -> &Self::Target {
+        &self.systems
+    }
+}
 
-            println!("System is {variant:?} with {descriptor:#?}");
-        });
+impl DerefMut for Systems {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.systems
     }
 }

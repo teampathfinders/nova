@@ -10,6 +10,8 @@ pub struct Gravity {
 impl Component for Gravity {}
 
 fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
+    println!("Position system");
+
     for (entity, position) in query {
         println!("Entity {entity:?} is at position {position:?}");
     }
@@ -43,6 +45,8 @@ impl Component for Health {}
 fn example_system(
     query: Query<(&Player, &mut Health), (With<Transform>, Without<Gravity>)>,
 ) {
+    println!("Health system");
+
     for (player, health) in query {
         health.amount -= 1;
 

@@ -196,6 +196,11 @@ pub struct Query<Q: QueryComponents, F: QueryFilters = ()> {
 }
 
 impl<Q: QueryComponents, F: QueryFilters> Query<Q, F> {
+    pub(crate) const DESCRIPTOR: QueryDescriptor = QueryDescriptor {
+        components: Q::DESCRIPTORS,
+        filters: F::DESCRIPTORS
+    };
+
     /// Whether this query requests mutable (and therefore exclusive) access to
     /// one or more components.
     pub(crate) const fn exclusive() -> bool {
@@ -214,11 +219,14 @@ impl<Q: QueryComponents, F: QueryFilters> Query<Q, F> {
             _marker: PhantomData
         }
     }
+}
 
-    pub(crate) const fn descriptor() -> QueryDescriptor {
-        QueryDescriptor {
-            components: Q::DESCRIPTORS,
-            filters: F::DESCRIPTORS
+impl<Q: QueryComponents, F: QueryFilters> From<Vec<Option<Q>>> for Query<Q, F> {
+    fn from(query: Vec<Option<Q>>) -> Query<Q, F> {
+        Query {
+            query,
+            index: 0,
+            _marker: PhantomData            
         }
     }
 }
