@@ -3,6 +3,7 @@ use std::num::NonZeroUsize;
 /// An entity is just a unique ID.
 /// The ID is nonzero so that the Rust compiler can use optimisations for the Option type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Entity(NonZeroUsize);
 
 /// List of currently alive entities.

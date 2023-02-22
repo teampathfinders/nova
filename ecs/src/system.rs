@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{ComponentQuery, QueryFilter, Query, QueryDescriptor};
+use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor};
 
 /// Describes the variant of a system.
 /// 
@@ -44,7 +44,7 @@ pub(crate) trait IntoSystem {
 /// Structs have the same type and therefore can be used for the System trait.
 /// 
 /// The [`IntoSystem`] trait can be used to convert this into a boxed [`System`].
-pub(crate) struct SharedSystem<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> {
+pub(crate) struct SharedSystem<Q: QueryComponents, F: QueryFilters, S: Fn(Query<Q, F>)> {
     /// The actual function pointer.
     callable: S,
     // The Q and F generics are used in the function trait, but the compiler still complains about them...
@@ -52,7 +52,7 @@ pub(crate) struct SharedSystem<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q,
     _marker: PhantomData<(Q, F)>,
 }
 
-impl<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> System for SharedSystem<Q, F, S> {
+impl<Q: QueryComponents, F: QueryFilters, S: Fn(Query<Q, F>)> System for SharedSystem<Q, F, S> {
     fn variant(&self) -> SystemVariant {
         SystemVariant::Shared
     }
@@ -62,7 +62,7 @@ impl<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> System for SharedSys
     }
 }
 
-impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static> IntoSystem for SharedSystem<Q, F, S> {
+impl<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: Fn(Query<Q, F>) + 'static> IntoSystem for SharedSystem<Q, F, S> {
     fn into_system(self) -> Box<dyn System> {
         Box::new(self)
     }
@@ -76,14 +76,14 @@ impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) +
 /// Implementing the System trait directly for function pointers doesn't work.
 /// This is due to every closure and function pointer having a different type.
 /// Structs have the same type and therefore can be used for the System trait.
-pub(crate) struct ExclusiveSystem<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> {
+pub(crate) struct ExclusiveSystem<Q: QueryComponents, F: QueryFilters, S: FnMut(Query<Q, F>)> {
     callable: S,
     // The Q and F generics are used in the function trait, but the compiler still complains about them...
     #[doc(hidden)]
     _marker: PhantomData<(Q, F)>
 }
 
-impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for ExclusiveSystem<Q, F, S> {
+impl<Q: QueryComponents, F: QueryFilters, S: FnMut(Query<Q, F>)> System for ExclusiveSystem<Q, F, S> {
     fn variant(&self) -> SystemVariant {
         SystemVariant::Exclusive
     }
@@ -93,7 +93,7 @@ impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for Exclus
     }
 }
 
-impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static> IntoSystem for ExclusiveSystem<Q, F, S> {
+impl<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: FnMut(Query<Q, F>) + 'static> IntoSystem for ExclusiveSystem<Q, F, S> {
     fn into_system(self) -> Box<dyn System> {
         Box::new(self)
     }
@@ -105,7 +105,7 @@ pub(crate) struct Systems {
 }
 
 impl Systems {
-    pub fn register<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, callable: S) {
+    pub fn register<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, callable: S) {
         let system = if Query::<Q, F>::exclusive() {
             ExclusiveSystem {
                 callable,
@@ -126,7 +126,7 @@ impl Systems {
             let meta = s.query();
             let variant = s.variant();
 
-            println!("System is {variant:?} with {meta:?}");
+            println!("System is {variant:?} with {meta:#?}");
         });
     }
 }

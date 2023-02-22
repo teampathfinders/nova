@@ -5,9 +5,14 @@ use crate::Entity;
 /// Represents a component that can be queried by a system.
 pub trait Component {}
 
-/// A component ID.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct ComponentId(usize);
+#[repr(transparent)]
+pub(crate) struct ComponentId(TypeId);
+
+/// A component index
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub(crate) struct ComponentIndex(usize);
 
 /// Stores all components of a single type.
 #[derive(Debug)]

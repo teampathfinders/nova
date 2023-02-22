@@ -40,7 +40,7 @@ struct Health {
 
 impl Component for Health {}
 
-fn health_system(
+fn example_system(
     query: Query<(&Player, &mut Health), (With<Transform>, Without<Gravity>)>,
 ) {
     for (player, health) in query {
@@ -67,7 +67,7 @@ fn example() {
     let entity = world.spawn(());
 
     world.system(print_position);
-    world.system(health_system);
+    world.system(example_system);
 
     world.execute();
     world.despawn(entity);

@@ -1,4 +1,4 @@
-use crate::{Entities, Entity, Components, Collection, Systems, System, ComponentQuery, Query, QueryFilter};
+use crate::{Entities, Entity, Components, Collection, Systems, System, QueryComponents, Query, QueryFilters};
 
 pub struct World {
     entities: Entities,
@@ -32,7 +32,7 @@ impl World {
         self.components.deregister(entity);
     }
 
-    pub fn system<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, system: S) {
+    pub fn system<Q: QueryComponents + 'static, F: QueryFilters + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, system: S) {
         self.systems.register(system);
     }
 
