@@ -2,14 +2,19 @@ use std::{any::{TypeId, Any}, collections::HashMap};
 
 use crate::Entity;
 
+/// Represents a component that can be queried by a system.
 pub trait Component {}
 
+/// A component ID.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ComponentId(usize);
+pub(crate) struct ComponentId(usize);
 
+/// Stores all components of a single type.
 #[derive(Debug)]
-pub struct ComponentStorage<C: Component> {
+pub(crate) struct ComponentStorage<C: Component> {
+    /// Maps entity IDs to indices in storage.
     indices: HashMap<Entity, usize>,
+    /// Component storage.
     storage: Vec<Option<C>>    
 }
 
@@ -21,6 +26,7 @@ impl<C: Component> ComponentStorage<C> {
         }
     }
 
+    /// Stores a new component in the storage, linked to the given entity.
     pub fn register(&mut self, entity: Entity, component: C) {
         // Find gaps
         let gap = self.storage
@@ -42,11 +48,13 @@ impl<C: Component> ComponentStorage<C> {
 
 /// Abstraction over a specific component storage.
 /// This allows [`Components`] to store them.
-pub trait Storage {
+pub(crate) trait Storage {
+    /// Returns the unique ID of the component.
     fn type_id(&self) -> TypeId;
+    /// Casts self to [`Any`];
     fn as_any(&self) -> &dyn Any;
+    /// Casts self to a mutable [`Any`].
     fn as_any_mut(&mut self) -> &mut dyn Any;
-
     /// Deregister is put in the trait so downcasting is not needed.
     /// This is not possible with [`register`](ComponentStorage::register) because
     /// it contains a generic parameter.
@@ -82,7 +90,8 @@ pub struct Components {
 }
 
 impl Components {
-    pub fn register<C: Component + 'static>(&mut self, entity: Entity, component: C) {
+    /// Adds a component to the registry for the specified entity.
+    pub(crate) fn register<C: Component + 'static>(&mut self, entity: Entity, component: C) {
         let type_id = TypeId::of::<C>();
         let entry = self.storage
             .entry(type_id)
@@ -96,7 +105,8 @@ impl Components {
         storage.unwrap().register(entity, component);
     }
 
-    pub fn deregister(&mut self, entity: Entity) {
+    /// Removes all of an entity's components from the registry.
+    pub(crate) fn deregister(&mut self, entity: Entity) {
         for (_, v) in self.storage.iter_mut() {
             v.deregister(entity);
         }
@@ -111,13 +121,21 @@ impl Default for Components {
     }
 }
 
+/// Represents a collection of components.
 pub trait Collection {
+    /// Inserts the components into the component registry.
     fn insert(self, entity: Entity, registry: &mut Components);
 }
 
 impl<C: Component + 'static> Collection for C {
     fn insert(self, entity: Entity, registry: &mut Components) {
         registry.register(entity, self);
+    }
+}
+
+impl Collection for () {
+    fn insert(self, _entity: Entity, _registry: &mut Components) {
+        // do nothing.
     }
 }
 

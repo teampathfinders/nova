@@ -1,24 +1,36 @@
 use std::marker::PhantomData;
 
-use crate::{ComponentQuery, QueryFilter, Query, QueryMeta};
+use crate::{ComponentQuery, QueryFilter, Query, QueryDescriptor};
 
+/// Describes the variant of a system.
+/// 
+/// This affects how the system will be scheduled to run.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SystemVariant {
+pub(crate) enum SystemVariant {
+    /// The system queries include a mutable reference.
+    /// 
+    /// There can only be one mutable reference to a component at a time,
+    /// therefore this system variant will request exclusive access to the
+    /// queried components.
     Exclusive,
+    /// The system uses only immutable references.
+    /// 
+    /// This system variant can be scheduled together with other shared systems
+    /// accessing the same component. Thus, multiple shared systems can be ran at the same time.
     Shared
 }
 
-pub trait System {
-    // /// Returns a description of the components and entities that the query has requested.
-    fn query(&self) -> QueryMeta;
+pub(crate) trait System {
+    /// A descriptor of the query that this system has requested.
+    fn query(&self) -> QueryDescriptor;
+    /// The system variant.
+    /// This can be ether of the values of [`SystemVariant`].
     fn variant(&self) -> SystemVariant;
 }
 
-/// Trait to convert a [`SystemCallable`] into a boxed [`System`].
-pub trait IntoSystem {
-    type System: System;
-
-    /// Converts the callable into a system.
+/// Helper trait to convert a [`SharedSystem`] or [`ExclusiveSystem`] into a boxed [`System`].
+pub(crate) trait IntoSystem {
+    /// Converts the callable into a system that can be stored in a [`Systems`] structure.
     fn into_system(self) -> Box<dyn System>;
 }
 
@@ -30,10 +42,14 @@ pub trait IntoSystem {
 /// Implementing the System trait directly for function pointers doesn't work.
 /// This is due to every closure and function pointer having a different type.
 /// Structs have the same type and therefore can be used for the System trait.
-pub struct SharedSystem<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> {
+/// 
+/// The [`IntoSystem`] trait can be used to convert this into a boxed [`System`].
+pub(crate) struct SharedSystem<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> {
+    /// The actual function pointer.
     callable: S,
-    _q: PhantomData<Q>,
-    _f: PhantomData<F>
+    // The Q and F generics are used in the function trait, but the compiler still complains about them...
+    #[doc(hidden)]
+    _marker: PhantomData<(Q, F)>,
 }
 
 impl<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> System for SharedSystem<Q, F, S> {
@@ -41,21 +57,12 @@ impl<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> System for SharedSys
         SystemVariant::Shared
     }
 
-    fn query(&self) -> QueryMeta {
+    fn query(&self) -> QueryDescriptor {
         Query::<Q, F>::meta()
     }
-
-    // fn call(&self) {
-    //     let meta = Query::<Q, F>::meta();
-    //     dbg!(meta);
-
-    //     (self.callable)(Query::empty())
-    // }
 }
 
 impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static> IntoSystem for SharedSystem<Q, F, S> {
-    type System = SharedSystem<Q, F, S>;
-
     fn into_system(self) -> Box<dyn System> {
         Box::new(self)
     }
@@ -69,11 +76,11 @@ impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) +
 /// Implementing the System trait directly for function pointers doesn't work.
 /// This is due to every closure and function pointer having a different type.
 /// Structs have the same type and therefore can be used for the System trait.
-pub struct ExclusiveSystem<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> {
+pub(crate) struct ExclusiveSystem<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> {
     callable: S,
     // The Q and F generics are used in the function trait, but the compiler still complains about them...
-    _q: PhantomData<Q>,
-    _f: PhantomData<F>
+    #[doc(hidden)]
+    _marker: PhantomData<(Q, F)>
 }
 
 impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for ExclusiveSystem<Q, F, S> {
@@ -81,21 +88,19 @@ impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for Exclus
         SystemVariant::Exclusive
     }
 
-    fn query(&self) -> QueryMeta {
+    fn query(&self) -> QueryDescriptor {
         Query::<Q, F>::meta()
     }
 }
 
 impl<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: FnMut(Query<Q, F>) + 'static> IntoSystem for ExclusiveSystem<Q, F, S> {
-    type System = ExclusiveSystem<Q, F, S>;
-
     fn into_system(self) -> Box<dyn System> {
         Box::new(self)
     }
 }
 
 /// Keeps track of the currently active systems.
-pub struct Systems {
+pub(crate) struct Systems {
     systems: Vec<Box<dyn System>>
 }
 
@@ -104,14 +109,12 @@ impl Systems {
         let system = if Query::<Q, F>::exclusive() {
             ExclusiveSystem {
                 callable,
-                _q: PhantomData,
-                _f: PhantomData
+                _marker: PhantomData
             }.into_system()
         } else {
             SharedSystem {
                 callable,
-                _q: PhantomData,
-                _f: PhantomData
+                _marker: PhantomData
             }.into_system()
         };
 

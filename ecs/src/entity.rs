@@ -1,31 +1,14 @@
 use std::num::NonZeroUsize;
 
-use crate::World;
-
-// pub struct EntityMut<'w> {
-//     world: &'w mut World,
-//     entity: Entity
-// }
-
-// pub struct EntityRef<'w> {
-//     world: &'w World,
-//     entity: Entity
-// }
-
 /// An entity is just a unique ID.
 /// The ID is nonzero so that the Rust compiler can use optimisations for the Option type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Entity(NonZeroUsize);
 
 /// List of currently alive entities.
-pub struct Entities {
+pub(crate) struct Entities {
     /// List of entities.
     entities: Vec<Option<Entity>>,
-    // /// Maps entity IDs to indices in the entities vector.
-    // handle_map: HashMap<Entity, usize>,
-    // /// IDs that were freed by destroyed entities,
-    // /// these can be reused to keep the entities array packed.
-    // freed: Vec<usize>
 }   
 
 impl Entities {
@@ -67,9 +50,7 @@ impl Entities {
 impl Default for Entities {
     fn default() -> Entities {
         Entities {
-            entities: Vec::new(),
-            // handle_map: HashMap::new(),
-            // freed: Vec::new()
+            entities: Vec::new()
         }
     }
 }

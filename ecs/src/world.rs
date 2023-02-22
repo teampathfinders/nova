@@ -7,22 +7,26 @@ pub struct World {
 }
 
 impl World {
+    /// Creates a new, empty world.
     pub fn new() -> World {
         World::default()
     }
 
+    /// Spawns an entity without components.
+    /// This is the same calling [`spawn`](Self::spawn) with a unit type.
     pub fn spawn_empty(&mut self) -> Entity {
         self.entities.register()
     }
 
     /// Summons a new entity with the given components.
-    pub fn spawn(&mut self, collection: impl Collection) -> Entity {
+    pub fn spawn<C: Collection>(&mut self, collection: C) -> Entity {
         let entity = self.entities.register();        
         collection.insert(entity, &mut self.components);
 
         entity
     }
 
+    /// Despawns an entity previously created with [`spawn`](Self::spawn) or [`spawn_empty`](Self::spawn_empty).
     pub fn despawn(&mut self, entity: Entity) {
         self.entities.deregister(entity);
         self.components.deregister(entity);

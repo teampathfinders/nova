@@ -1,7 +1,7 @@
 use common::Vector3f;
 
 use crate::{
-    Changed, Component, Entity, Query, System, Transform, With, Without, World,
+    Changed, Component, Entity, Query, System, With, Without, World,
 };
 
 #[derive(Debug)]
@@ -16,6 +16,14 @@ fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
         println!("Entity {entity:?} is at position {position:?}");
     }
 }
+
+#[derive(Debug)]
+pub struct Transform {
+    pub position: Vector3f,
+    pub rotation: Vector3f,
+}
+
+impl Component for Transform {}
 
 #[derive(Debug)]
 struct Player {
@@ -55,6 +63,8 @@ fn example() {
         },
         Gravity { strength: 9.81 },
     ));
+
+    let entity = world.spawn(());
 
     world.system(print_position);
     world.system(health_system);

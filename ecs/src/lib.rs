@@ -6,14 +6,6 @@ use common::{glob_export, Vector3f};
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
-pub struct Transform {
-    pub position: Vector3f,
-    pub rotation: Vector3f,
-}
-
-impl Component for Transform {}
-
 glob_export!(world);
 glob_export!(entity);
 glob_export!(component);
