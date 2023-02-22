@@ -1,10 +1,19 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, any::TypeId};
 
 use crate::{Component, Entity};
 
 #[derive(Debug)]
+pub enum QueryFilterVariant {
+    None,
+    With(TypeId),
+    Without(TypeId),
+    Changed(TypeId),
+    Collection(&'static [QueryFilterVariant])
+}
+
+#[derive(Debug)]
 pub(crate) struct QueryDescriptor {
-    pub test: String
+    filters: &'static [QueryFilterVariant]
 }
 
 /// Coupled with [`Query`], this specifies the list of components to request for the system.
@@ -74,12 +83,58 @@ pub struct Without<C: Component> {
 /// 
 /// This can be used to filter certain components and entities from the request.
 /// Some available filters are [`Changed`], [`With`] and [`Without`].
-pub trait QueryFilter {}
+pub trait QueryFilter {
+    const VARIANTS: &'static [QueryFilterVariant];
+    const COUNT: usize;
+}
 
-impl QueryFilter for () {}
-impl<C: Component> QueryFilter for Changed<C> {}
-impl<C: Component> QueryFilter for With<C> {}
-impl<C: Component> QueryFilter for Without<C> {}
+impl QueryFilter for () {
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::None];
+    const COUNT: usize = 0;
+}
+
+impl<C: Component + 'static> QueryFilter for Changed<C> {
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Changed(TypeId::of::<C>())];
+    const COUNT: usize = 1;
+}
+
+impl<C: Component + 'static> QueryFilter for With<C> {
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::With(TypeId::of::<C>())];
+    const COUNT: usize = 1;
+}
+
+impl<C: Component + 'static> QueryFilter for Without<C> {
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Without(TypeId::of::<C>())];
+    const COUNT: usize = 1;
+}
+
+impl<F0, F1> QueryFilter for (F0, F1) 
+    where F0: QueryFilter, F1: QueryFilter
+{
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F1::VARIANTS)];
+    const COUNT: usize = F0::COUNT + F1::COUNT;
+}
+
+impl<F0, F1, F2> QueryFilter for (F0, F1, F2) 
+    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter
+{
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT;
+}
+
+impl<F0, F1, F2, F3> QueryFilter for (F0, F1, F2, F3) 
+    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter
+{
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT + F3::COUNT;
+}
+
+impl<F0, F1, F2, F3, F4> QueryFilter for (F0, F1, F2, F3, F4) 
+    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter, F4: QueryFilter
+{
+    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT + F3::COUNT + F4::COUNT;
+}
 
 /// Queries are used by systems to request certain components.
 /// 
@@ -126,7 +181,7 @@ impl<Q: ComponentQuery, F: QueryFilter> Query<Q, F> {
 
     pub(crate) fn meta() -> QueryDescriptor {
         QueryDescriptor {
-            test: format!("Q: {}, F: {}", std::any::type_name::<Q>(), std::any::type_name::<F>())
+            filters: F::VARIANTS
         }
     }
 }
