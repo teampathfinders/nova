@@ -1,29 +1,103 @@
 use std::{marker::PhantomData, any::TypeId};
 
-use crate::{Component, Entity};
+use crate::{Component, Entity, Components};
 
 #[derive(Debug)]
 pub(crate) struct QueryDescriptor {
-    components: &'static [QueryComponentDescriptor],
-    filters: &'static [QueryFilterDescriptor]
+    pub(crate) components: &'static [QueryComponentDescriptor],
+    pub(crate) filters: &'static [QueryFilterDescriptor]
 }
 
 #[derive(Debug)]
 pub struct QueryComponentDescriptor {
-    id: TypeId,
-    mutable: bool
+    pub(crate) id: TypeId,
+    pub(crate) mutable: bool
+}
+
+// pub struct QueryCollector<Q> {
+//     collection: Vec<Option<Q>>
+// }
+
+// impl<Q: QueryComponents> QueryCollector<Q> {
+//     pub fn new() -> QueryCollector<Q> {
+//         QueryCollector { collection:  vec![] }
+//     }
+// }
+
+// impl<Q: QueryComponents> From<Vec<Option<Q>>> for QueryCollector<Q> {
+//     fn from(collection: Vec<Option<Q>>) -> QueryCollector<Q> {
+//         QueryCollector {
+//             collection
+//         }
+//     }
+// }
+
+// pub trait QueryCollection: Sized {
+//     fn gather(components: &Components) -> QueryCollector<Self>;
+// }
+
+// impl<Q0> QueryCollection for Q0 
+//     where Q0: SingularQueryComponent
+// {
+//     fn gather(components: &Components) -> QueryCollector<Q0> {
+//         let mut gathered = vec![];
+
+//         QueryCollector::<Q0>::from(gathered)
+//     }    
+// }
+
+// impl<Q0, Q1> QueryCollection for (Q0, Q1) 
+//     where Q0: SingularQueryComponent, Q1: SingularQueryComponent
+// {
+//     fn gather(components: &Components) -> QueryCollector<(Q0, Q1)> {
+//         todo!()
+//     }
+// }   
+
+// impl<Q0, Q1, Q2> QueryCollection for (Q0, Q1, Q2) 
+//     where Q0: SingularQueryComponent, Q1: SingularQueryComponent, Q2: SingularQueryComponent
+// {
+//     fn gather(components: &Components) -> QueryCollector<(Q0, Q1, Q2)> {
+//         todo!()
+//     }
+// }
+
+pub struct QueryCollector<Q> {
+    gathered: Vec<Option<Q>>
+}
+
+impl<Q: QueryComponents> From<Vec<Option<Q>>> for QueryCollector<Q> {
+    fn from(gathered: Vec<Option<Q>>) -> QueryCollector<Q> {
+        QueryCollector {
+            gathered
+        }
+    }
+}
+
+pub trait QueryCollection: Sized {
+    fn gather(components: &Components) -> QueryCollector<Self>;
+}
+
+impl<Q0, F> QueryCollection for Query<Q0, F> 
+    where Q0: SingularQueryComponent, F: QueryFilters
+{
+    fn gather(components: &Components) -> QueryCollector<Self> {
+        let mut gathered = vec![];
+
+        QueryCollector::from(gathered)
+    }
 }
 
 /// Coupled with [`Query`], this specifies the list of components to request for the system.
 /// [`More info`](Query).
-pub trait QueryComponents {
+pub trait QueryComponents: QueryCollection {
     /// Whether the implementor requires a mutable reference.
     /// This determines whether the system is shared or exclusive.
     const EXCLUSIVE: bool;
     const DESCRIPTORS: &'static [QueryComponentDescriptor];
 }
 
-trait SingularQueryComponent {
+trait SingularQueryComponent: QueryComponents {
     const SINGULAR_EXCLUSIVE: bool;
     const DESCRIPTOR: QueryComponentDescriptor;
 }
@@ -64,23 +138,23 @@ impl<Q0, Q1, Q2> QueryComponents for (Q0, Q1, Q2)
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR];
 }
 
-impl<Q0, Q1, Q2, Q3> QueryComponents for (Q0, Q1, Q2, Q3)
-    where 
-        Q0: SingularQueryComponent, Q1: SingularQueryComponent, 
-        Q2: SingularQueryComponent, Q3: SingularQueryComponent
-{
-    const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR];
-}
+// impl<Q0, Q1, Q2, Q3> QueryComponents for (Q0, Q1, Q2, Q3)
+//     where 
+//         Q0: SingularQueryComponent, Q1: SingularQueryComponent, 
+//         Q2: SingularQueryComponent, Q3: SingularQueryComponent
+// {
+//     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE;
+//     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR];
+// }
 
-impl<Q0, Q1, Q2, Q3, Q4> QueryComponents for (Q0, Q1, Q2, Q3, Q4)
-    where 
-        Q0: SingularQueryComponent, Q1: SingularQueryComponent, Q2: SingularQueryComponent, 
-        Q3: SingularQueryComponent, Q4: SingularQueryComponent
-{
-    const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE || Q4::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR, Q4::DESCRIPTOR];
-}
+// impl<Q0, Q1, Q2, Q3, Q4> QueryComponents for (Q0, Q1, Q2, Q3, Q4)
+//     where 
+//         Q0: SingularQueryComponent, Q1: SingularQueryComponent, Q2: SingularQueryComponent, 
+//         Q3: SingularQueryComponent, Q4: SingularQueryComponent
+// {
+//     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE || Q4::EXCLUSIVE;
+//     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR, Q4::DESCRIPTOR];
+// }
 
 /// Filter that only queries components that have been modified.
 pub struct Changed<C: Component> {

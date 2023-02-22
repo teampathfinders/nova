@@ -1,6 +1,6 @@
 use std::{any::{TypeId, Any}, collections::HashMap};
 
-use crate::{Entity, QueryDescriptor, QueryComponents, QueryFilters, Query};
+use crate::{Entity, QueryDescriptor, QueryComponents, QueryFilters, Query, QueryCollector, QueryCollection};
 
 /// Represents a component that can be queried by a system.
 pub trait Component {}
@@ -60,6 +60,8 @@ pub(crate) trait Storage {
     fn as_any(&self) -> &dyn Any;
     /// Casts self to a mutable [`Any`].
     fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn has_entity(&self, entity: Entity) -> bool;
     /// Deregister is put in the trait so downcasting is not needed.
     /// This is not possible with [`register`](ComponentStorage::register) because
     /// it contains a generic parameter.
@@ -82,6 +84,11 @@ impl<C: Component + 'static> Storage for ComponentStorage<C> {
         self
     }
 
+    #[inline]
+    fn has_entity(&self, entity: Entity) -> bool {
+        self.indices.contains_key(&entity)
+    }
+
     fn deregister(&mut self, entity: Entity) {
         if let Some(index) = self.indices.remove(&entity) {
             self.storage[index] = None;
@@ -97,9 +104,9 @@ pub struct Components {
 impl Components {
     pub(crate) fn query<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
         let descriptor = Query::<Q, F>::DESCRIPTOR;
-        let mut gathered = Vec::new();
+        let mut collector: QueryCollector<Q> = Q::gather(self);
 
-        Query::from(gathered)
+        todo!()
     }
 
     pub(crate) fn query_mut<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
