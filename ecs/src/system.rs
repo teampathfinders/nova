@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{ComponentQuery, QueryFilter, Query, QueryMeta};
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SystemVariant {
     Exclusive,
     Shared
@@ -101,16 +102,12 @@ pub struct Systems {
 impl Systems {
     pub fn register<Q: ComponentQuery + 'static, F: QueryFilter + 'static, S: Fn(Query<Q, F>) + 'static>(&mut self, callable: S) {
         let system = if Query::<Q, F>::exclusive() {
-            dbg!("System is exclusive");
-
             ExclusiveSystem {
                 callable,
                 _q: PhantomData,
                 _f: PhantomData
             }.into_system()
         } else {
-            dbg!("System is shared");
-
             SharedSystem {
                 callable,
                 _q: PhantomData,
@@ -122,13 +119,12 @@ impl Systems {
     }
 
     pub fn call_all(&self) {
-        // self.systems.iter().for_each(|s| {
-        //     // s.call();
-        //     // let meta = s.query();
-        //     // dbg!(meta);
+        self.systems.iter().for_each(|s| {
+            let meta = s.query();
+            let variant = s.variant();
 
-        //     // let callable = 
-        // });
+            println!("System is {variant:?} with {meta:?}");
+        });
     }
 }
 

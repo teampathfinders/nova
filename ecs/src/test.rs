@@ -1,6 +1,8 @@
 use common::Vector3f;
 
-use crate::{Changed, Component, Entity, Query, System, Transform, World};
+use crate::{
+    Changed, Component, Entity, Query, System, Transform, With, Without, World,
+};
 
 #[derive(Debug)]
 pub struct Gravity {
@@ -10,11 +12,12 @@ pub struct Gravity {
 impl Component for Gravity {}
 
 fn print_position(query: Query<(Entity, &Transform), Changed<Transform>>) {
-    // for (entity, position) in &query {
-    //     println!("Entity {entity:?} is at position {position:?}");
-    // }
+    for (entity, position) in query {
+        println!("Entity {entity:?} is at position {position:?}");
+    }
 }
 
+#[derive(Debug)]
 struct Player {
     name: String,
 }
@@ -31,10 +34,15 @@ struct Health {
 
 impl Component for Health {}
 
-fn health_system(query: Query<(&Player, &mut Health), Changed<Health>>) {
-    // for (player, health) in &query {
-    //     health.amount -= 1;
-    // }
+fn health_system(query: Query<(&Player, &mut Health)>) {
+    for (player, health) in query {
+        health.amount -= 1;
+
+        if health.amount == 0 {
+            println!("{player:?} has died");
+            health.amount = 20;
+        }
+    }
 }
 
 #[test]

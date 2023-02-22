@@ -72,12 +72,13 @@ impl<C: Component> QueryFilter for Changed<C> {}
 impl<C: Component> QueryFilter for With<C> {}
 impl<C: Component> QueryFilter for Without<C> {}
 
-pub struct Query<'a, Q: ComponentQuery, F: QueryFilter = ()> {
-    query: &'a [Q],
+pub struct Query<Q: ComponentQuery, F: QueryFilter = ()> {
+    query: Vec<Option<Q>>,
+    index: usize,
     _marker: PhantomData<F>
 }
 
-impl<Q: ComponentQuery, F: QueryFilter> Query<'_, Q, F> {
+impl<Q: ComponentQuery, F: QueryFilter> Query<Q, F> {
     pub const fn exclusive() -> bool {
         Q::MUTABLE
     }
@@ -86,9 +87,10 @@ impl<Q: ComponentQuery, F: QueryFilter> Query<'_, Q, F> {
         !Q::MUTABLE
     }
 
-    pub(crate) fn empty<'a>() -> Query<'a, Q, F> {
+    pub(crate) fn empty() -> Query<Q, F> {
         Query {
-            query: &[],
+            query: Vec::new(),
+            index: 0,
             _marker: PhantomData
         }
     }
@@ -97,6 +99,23 @@ impl<Q: ComponentQuery, F: QueryFilter> Query<'_, Q, F> {
         QueryMeta {
             test: format!("Q: {}, F: {}", std::any::type_name::<Q>(), std::any::type_name::<F>())
         }
+    }
+}
+
+impl<Q: ComponentQuery, F: QueryFilter> ExactSizeIterator for Query<Q, F> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.query.len() - self.index
+    }
+}
+
+impl<Q: ComponentQuery, F: QueryFilter> Iterator for Query<Q, F> {
+    type Item = Q;
+
+    #[inline]
+    fn next(&mut self) -> Option<Q> {
+        self.index += 1;
+        self.query.get_mut(self.index - 1)?.take()
     }
 }
 
