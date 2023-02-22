@@ -4,7 +4,6 @@ use crate::{Component, Entity};
 
 #[derive(Debug)]
 pub enum QueryFilterVariant {
-    None,
     With(TypeId),
     Without(TypeId),
     Changed(TypeId),
@@ -85,55 +84,88 @@ pub struct Without<C: Component> {
 /// Some available filters are [`Changed`], [`With`] and [`Without`].
 pub trait QueryFilter {
     const VARIANTS: &'static [QueryFilterVariant];
-    const COUNT: usize;
 }
 
 impl QueryFilter for () {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::None];
-    const COUNT: usize = 0;
+    const VARIANTS: &'static [QueryFilterVariant] = &[];
 }
 
-impl<C: Component + 'static> QueryFilter for Changed<C> {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Changed(TypeId::of::<C>())];
-    const COUNT: usize = 1;
-}
-
-impl<C: Component + 'static> QueryFilter for With<C> {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::With(TypeId::of::<C>())];
-    const COUNT: usize = 1;
-}
-
-impl<C: Component + 'static> QueryFilter for Without<C> {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Without(TypeId::of::<C>())];
-    const COUNT: usize = 1;
+impl<F0> QueryFilter for F0 
+    where F0: SingularQueryFilter
+{
+    const VARIANTS: &'static [QueryFilterVariant] = &[F0::VARIANT];
 }
 
 impl<F0, F1> QueryFilter for (F0, F1) 
-    where F0: QueryFilter, F1: QueryFilter
+    where 
+        F0: SingularQueryFilter, F1: SingularQueryFilter, 
 {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F1::VARIANTS)];
-    const COUNT: usize = F0::COUNT + F1::COUNT;
+    const VARIANTS: &'static [QueryFilterVariant] = &[F0::VARIANT, F1::VARIANT];
 }
 
 impl<F0, F1, F2> QueryFilter for (F0, F1, F2) 
-    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter
+    where 
+        F0: SingularQueryFilter, F1: SingularQueryFilter, 
+        F2: SingularQueryFilter
 {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
-    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT;
+    const VARIANTS: &'static [QueryFilterVariant] = &[F0::VARIANT, F1::VARIANT, F2::VARIANT];
 }
 
 impl<F0, F1, F2, F3> QueryFilter for (F0, F1, F2, F3) 
-    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter
+    where 
+        F0: SingularQueryFilter, F1: SingularQueryFilter, 
+        F2: SingularQueryFilter, F3: SingularQueryFilter
 {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
-    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT + F3::COUNT;
+    const VARIANTS: &'static [QueryFilterVariant] = &[F0::VARIANT, F1::VARIANT, F2::VARIANT, F3::VARIANT];
 }
 
 impl<F0, F1, F2, F3, F4> QueryFilter for (F0, F1, F2, F3, F4) 
-    where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter, F4: QueryFilter
+    where 
+        F0: SingularQueryFilter, F1: SingularQueryFilter, 
+        F2: SingularQueryFilter, F3: SingularQueryFilter, 
+        F4: SingularQueryFilter
 {
-    const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
-    const COUNT: usize = F0::COUNT + F1::COUNT + F2::COUNT + F3::COUNT + F4::COUNT;
+    const VARIANTS: &'static [QueryFilterVariant] = &[F0::VARIANT, F1::VARIANT, F2::VARIANT, F3::VARIANT, F4::VARIANT];
+}
+
+// impl<F0, F1> QueryFilter for (F0, F1) 
+//     where F0: QueryFilter, F1: QueryFilter
+// {
+//     const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F1::VARIANTS)];
+// }
+
+// impl<F0, F1, F2> QueryFilter for (F0, F1, F2) 
+//     where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter
+// {
+//     const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+// }
+
+// impl<F0, F1, F2, F3> QueryFilter for (F0, F1, F2, F3) 
+//     where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter
+// {
+//     const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+// }
+
+// impl<F0, F1, F2, F3, F4> QueryFilter for (F0, F1, F2, F3, F4) 
+//     where F0: QueryFilter, F1: QueryFilter, F2: QueryFilter, F3: QueryFilter, F4: QueryFilter
+// {
+//     const VARIANTS: &'static [QueryFilterVariant] = &[QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS), QueryFilterVariant::Collection(F0::VARIANTS)];
+// }
+
+trait SingularQueryFilter {
+    const VARIANT: QueryFilterVariant;
+}
+
+impl<C: Component + 'static> SingularQueryFilter for Changed<C> {
+    const VARIANT: QueryFilterVariant = QueryFilterVariant::Changed(TypeId::of::<C>());
+}
+
+impl<C: Component + 'static> SingularQueryFilter for With<C> {
+    const VARIANT: QueryFilterVariant = QueryFilterVariant::With(TypeId::of::<C>());
+}
+
+impl<C: Component + 'static> SingularQueryFilter for Without<C> {
+    const VARIANT: QueryFilterVariant = QueryFilterVariant::Without(TypeId::of::<C>());
 }
 
 /// Queries are used by systems to request certain components.
@@ -171,7 +203,7 @@ impl<Q: ComponentQuery, F: QueryFilter> Query<Q, F> {
         !Q::EXCLUSIVE
     }
 
-    pub(crate) fn empty() -> Query<Q, F> {
+    pub(crate) const fn empty() -> Query<Q, F> {
         Query {
             query: Vec::new(),
             index: 0,
@@ -179,7 +211,7 @@ impl<Q: ComponentQuery, F: QueryFilter> Query<Q, F> {
         }
     }
 
-    pub(crate) fn meta() -> QueryDescriptor {
+    pub(crate) const fn descriptor() -> QueryDescriptor {
         QueryDescriptor {
             filters: F::VARIANTS
         }

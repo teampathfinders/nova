@@ -58,7 +58,7 @@ impl<Q: ComponentQuery, F: QueryFilter, S: Fn(Query<Q, F>)> System for SharedSys
     }
 
     fn query(&self) -> QueryDescriptor {
-        Query::<Q, F>::meta()
+        Query::<Q, F>::descriptor()
     }
 }
 
@@ -89,7 +89,7 @@ impl<Q: ComponentQuery, F: QueryFilter, S: FnMut(Query<Q, F>)> System for Exclus
     }
 
     fn query(&self) -> QueryDescriptor {
-        Query::<Q, F>::meta()
+        Query::<Q, F>::descriptor()
     }
 }
 

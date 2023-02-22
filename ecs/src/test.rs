@@ -1,6 +1,6 @@
 use common::Vector3f;
 
-use crate::{Changed, Component, Entity, Query, With, World};
+use crate::{Changed, Component, Entity, Query, With, Without, World};
 
 #[derive(Debug)]
 pub struct Gravity {
@@ -40,7 +40,9 @@ struct Health {
 
 impl Component for Health {}
 
-fn health_system(query: Query<(&Player, &mut Health), With<Transform>>) {
+fn health_system(
+    query: Query<(&Player, &mut Health), (With<Transform>, Without<Gravity>)>,
+) {
     for (player, health) in query {
         health.amount -= 1;
 
