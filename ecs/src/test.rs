@@ -9,8 +9,6 @@ pub struct Gravity {
 
 impl Component for Gravity {}
 
-impl Component for [u8] {}
-
 fn print_position(query: Query<(Entity, &Transform), Without<Gravity>>) {
     println!("Position system");
 

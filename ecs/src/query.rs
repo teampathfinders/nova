@@ -14,10 +14,6 @@ pub struct QueryComponentDescriptor {
     pub(crate) mutable: bool
 }
 
-pub struct QueryCollector<Q: QueryComponents, F: QueryFilters> {
-    collection: Vec<Option<Query<Q, F>>>
-}
-
 // /// Coupled with [`Query`], this specifies the list of components to request for the system.
 // /// [`More info`](Query).
 pub trait QueryComponents: Sized {
@@ -26,7 +22,7 @@ pub trait QueryComponents: Sized {
     const EXCLUSIVE: bool;
     const DESCRIPTORS: &'static [QueryComponentDescriptor];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F>;
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F>;
 }
 
 trait SingularQueryComponent: QueryComponents {
@@ -55,7 +51,7 @@ impl<Q0> QueryComponents for Q0
     const EXCLUSIVE: bool = Q0::SINGULAR_EXCLUSIVE;
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F> {
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
     }
 }
@@ -66,7 +62,7 @@ impl<Q0, Q1> QueryComponents for (Q0, Q1)
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE;
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F> {
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
     }
 }
@@ -77,7 +73,7 @@ impl<Q0, Q1, Q2> QueryComponents for (Q0, Q1, Q2)
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE;
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F> {
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
     }
 }
@@ -90,7 +86,7 @@ impl<Q0, Q1, Q2, Q3> QueryComponents for (Q0, Q1, Q2, Q3)
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE;
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F> {
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
     }
 }
@@ -103,7 +99,7 @@ impl<Q0, Q1, Q2, Q3, Q4> QueryComponents for (Q0, Q1, Q2, Q3, Q4)
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE || Q4::EXCLUSIVE;
     const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR, Q4::DESCRIPTOR];
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> QueryCollector<Self, F> {
+    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
     }
 }
