@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor, World, Components};
+use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor, World, Components, Entities};
 
 /// Describes the variant of a system.
 /// 
@@ -28,7 +28,7 @@ pub(crate) trait System {
     fn variant(&self) -> SystemVariant;
     /// Calls a shared system.
     /// The system itself then queries the world.
-    fn call(&self, components: &Components) {
+    fn call(&self, entities: &Entities, components: &Components) {
         unimplemented!()
     }
     /// Calls an exclusive system.
@@ -67,8 +67,8 @@ impl<Q: QueryComponents, F: QueryFilters, S: Fn(Query<Q, F>)> System for SharedS
         SystemVariant::Shared
     }
 
-    fn call(&self, components: &Components) {
-        let query = components.query::<Q, F>();
+    fn call(&self, entities: &Entities, components: &Components) {
+        let query = components.query::<Q, F>(entities);
         (self.callable)(query);
     }
 }

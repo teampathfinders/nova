@@ -50,7 +50,7 @@ impl World {
         self.systems.iter_mut().for_each(|system| {
             match system.variant() {
                 SystemVariant::Shared => {
-                    system.call(&self.components);
+                    system.call(&self.entities, &self.components);
                 },
                 SystemVariant::Exclusive => {
                     system.call_mut(&mut self.components);

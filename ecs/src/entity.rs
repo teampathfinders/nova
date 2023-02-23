@@ -28,9 +28,9 @@ pub struct Entity(NonZeroUsize);
 
 /// List of currently alive entities.
 #[derive(Debug)]
-pub(crate) struct Entities {
+pub struct Entities {
     /// List of entities.
-    entities: Vec<Option<Entity>>,
+    pub(crate) entities: Vec<Option<Entity>>,
 }   
 
 impl Entities {

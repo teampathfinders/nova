@@ -1,6 +1,6 @@
 use std::{any::{TypeId, Any}, collections::HashMap};
 
-use crate::{Entity, QueryDescriptor, QueryComponents, QueryFilters, Query, QueryCollector, QueryCollection};
+use crate::{Entity, QueryComponents, QueryFilters, Query, Entities};
 
 /// Represents a component that can be queried by a system.
 pub trait Component {}
@@ -98,19 +98,19 @@ impl<C: Component + 'static> Storage for ComponentStorage<C> {
 
 /// Contains a list of components sorted by component ID.
 pub struct Components {
-    storage: HashMap<TypeId, Box<dyn Storage>>
+    pub(crate) storage: HashMap<TypeId, Box<dyn Storage>>
 }
 
 impl Components {
-    pub(crate) fn query<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
-        let descriptor = Query::<Q, F>::DESCRIPTOR;
-        let mut collector: QueryCollector<Q> = Q::gather(self);
+    pub(crate) fn query<Q: QueryComponents, F: QueryFilters>(&self, entities: &Entities) -> Query<Q, F> {
+        let mut collector = Q::gather::<F>(entities, self);
 
         todo!()
+        // Query::from(collector)
     }
 
     pub(crate) fn query_mut<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
-        let descriptor = Query::<Q, F>::DESCRIPTOR;
+        // let descriptor = Query::<Q, F>::DESCRIPTOR;
         let mut gathered = Vec::new();
 
         Query::from(gathered)

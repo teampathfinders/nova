@@ -11,7 +11,7 @@ impl Component for Gravity {}
 
 impl Component for [u8] {}
 
-fn print_position(query: Query<(Entity, &Transform)>) {
+fn print_position(query: Query<(Entity, &Transform), Without<Gravity>>) {
     println!("Position system");
 
     for (entity, position) in query {

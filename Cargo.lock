@@ -420,6 +420,7 @@ dependencies = [
  "common",
  "dashmap",
  "parking_lot",
+ "tokio",
 ]
 
 [[package]]
