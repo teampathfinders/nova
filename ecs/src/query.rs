@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, any::TypeId};
 
-use crate::{Component, Entity, Components, Entities};
+use crate::{Component, Entity, Components, Entities, World, EntityIter};
 
 // /// Coupled with [`Query`], this specifies the list of components to request for the system.
 // /// [`More info`](Query).
@@ -9,7 +9,7 @@ pub trait QueryComponents: Sized {
     /// This determines whether the system is shared or exclusive.
     const EXCLUSIVE: bool;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F>;
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F>;
 }
 
 trait SingularQueryComponent: QueryComponents {
@@ -37,19 +37,8 @@ impl<Q0> QueryComponents for Q0
 {
     const EXCLUSIVE: bool = Q0::SINGULAR_EXCLUSIVE;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
-        let mut query = Query::empty();
-
-        for entity in entities.entities.iter().filter_map(|x| *x) {
-            let storage = match components.storage.get(&Q0::TYPE_ID()) {
-                Some(s) => s,
-                None => continue
-            };
-
-
-        }
-
-        query
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
+        todo!()
     }
 }
 
@@ -58,7 +47,7 @@ impl<Q0, Q1> QueryComponents for (Q0, Q1)
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         todo!()
     }
 }
@@ -68,7 +57,7 @@ impl<Q0, Q1, Q2> QueryComponents for (Q0, Q1, Q2)
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         todo!()
     }
 }
@@ -80,7 +69,7 @@ impl<Q0, Q1, Q2, Q3> QueryComponents for (Q0, Q1, Q2, Q3)
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         todo!()
     }
 }
@@ -92,7 +81,7 @@ impl<Q0, Q1, Q2, Q3, Q4> QueryComponents for (Q0, Q1, Q2, Q3, Q4)
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE || Q4::EXCLUSIVE;
 
-    fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
+    fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         todo!()
     }
 }
@@ -202,68 +191,33 @@ impl<C: Component + 'static> SingularQueryFilter for Without<C> {
 /// *Immutable references* allow the scheduler to run this system in parallel with other systems
 /// that also immutably request the same component(s).<br/>
 /// *Mutable references* require exclusive access to the component and, hence, run sequentially.
-pub struct Query<Q: QueryComponents, F: QueryFilters = ()> {
-    query: Vec<Option<Q>>,
-    /// Current iterator index.
+pub struct Query<'world, Q: QueryComponents, F: QueryFilters = ()> {
+    world: &'world World,
+    entities: EntityIter<'world>,
     index: usize,
-    #[doc(hidden)]
-    _marker: PhantomData<F>
+    _marker: PhantomData<(Q, F)>
 }
 
-impl<Q: QueryComponents, F: QueryFilters> Query<Q, F> {
-    // pub(crate) const DESCRIPTOR: QueryDescriptor = QueryDescriptor {
-    //     components: Q::DESCRIPTORS,
-    //     filters: F::DESCRIPTORS
-    // };
-
-    /// Whether this query requests mutable (and therefore exclusive) access to
-    /// one or more components.
-    pub(crate) const fn exclusive() -> bool {
-        Q::EXCLUSIVE
-    }
-
-    /// Whether this query only requests immutable references.
-    pub(crate) const fn shared() -> bool {
-        !Q::EXCLUSIVE
-    }
-
-    pub(crate) const fn empty() -> Query<Q, F> {
-        Query {
-            query: Vec::new(),
+impl<'world, Q: QueryComponents, F: QueryFilters> Query<'world, Q, F> {
+    pub(crate) fn new(world: &'world World) -> Self {
+        Self {
+            entities: world.entities.iter(),
+            world,
             index: 0,
             _marker: PhantomData
         }
     }
-}
 
-impl<Q: QueryComponents, F: QueryFilters> From<Vec<Option<Q>>> for Query<Q, F> {
-    fn from(query: Vec<Option<Q>>) -> Query<Q, F> {
-        Query {
-            query,
-            index: 0,
-            _marker: PhantomData            
-        }
+    pub(crate) const fn exclusive() -> bool {
+        Q::EXCLUSIVE
     }
 }
 
-impl<Q: QueryComponents, F: QueryFilters> ExactSizeIterator for Query<Q, F> {
-    #[inline]
-    fn len(&self) -> usize {
-        self.query.len() - self.index
-    }
-}
-
-impl<Q: QueryComponents, F: QueryFilters> Iterator for Query<Q, F> {
+impl<'world, Q: QueryComponents, F: QueryFilters> Iterator for Query<'world, Q, F> {
     type Item = Q;
 
-    #[inline]
     fn next(&mut self) -> Option<Q> {
         self.index += 1;
-        self.query.get_mut(self.index - 1)?.take()
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (0, Some(self.query.len() - self.index))
+        todo!()
     }
 }

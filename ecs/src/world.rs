@@ -1,7 +1,7 @@
 use crate::{Entities, Entity, Components, Collection, Systems, System, QueryComponents, Query, QueryFilters, EntityRef, SystemVariant};
 
 pub struct World {
-    entities: Entities,
+    pub(crate) entities: Entities,
     components: Components,
     systems: Systems
 }

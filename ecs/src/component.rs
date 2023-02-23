@@ -96,6 +96,16 @@ impl<C: Component + 'static> Storage for ComponentStorage<C> {
     }
 }
 
+pub trait StorageQuery<C: Component> {
+    fn query(&self, entity: Entity) -> Option<&C>;
+}
+
+impl<C: Component + 'static> StorageQuery<C> for ComponentStorage<C> {
+    fn query(&self, entity: Entity) -> Option<&C> {
+        self.storage.get(*self.indices.get(&entity)?)?.as_ref()
+    }
+}
+
 /// Contains a list of components sorted by component ID.
 pub struct Components {
     pub(crate) storage: HashMap<TypeId, Box<dyn Storage>>

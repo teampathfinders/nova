@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{QueryComponents, QueryFilters, Query, QueryDescriptor, World, Components, Entities};
+use crate::{QueryComponents, QueryFilters, Query, Components, Entities};
 
 /// Describes the variant of a system.
 /// 
