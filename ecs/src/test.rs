@@ -9,11 +9,11 @@ pub struct Gravity {
 
 impl Component for Gravity {}
 
-fn print_position(query: Query<(Entity, &Transform), Without<Gravity>>) {
+fn print_position(query: Query<&Transform>) {
     println!("Position system");
 
-    for (entity, position) in query {
-        println!("Entity {entity:?} is at position {position:?}");
+    for transform in query {
+        println!("Entity is at position {transform:?}");
     }
 }
 
@@ -29,11 +29,11 @@ impl Component for Transform {}
 fn example() {
     let mut world = World::new();
 
-    world.system(print_position);
     world.spawn(Transform {
         position: Vector3f::zero(),
         rotation: Vector3f::zero(),
     });
+    world.system(print_position);
 
     world.execute();
 }

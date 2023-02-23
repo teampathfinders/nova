@@ -2,57 +2,54 @@ use std::{marker::PhantomData, any::TypeId};
 
 use crate::{Component, Entity, Components, Entities};
 
-#[derive(Debug)]
-pub(crate) struct QueryDescriptor {
-    pub(crate) components: &'static [QueryComponentDescriptor],
-    pub(crate) filters: &'static [QueryFilterDescriptor]
-}
-
-#[derive(Debug)]
-pub struct QueryComponentDescriptor {
-    pub(crate) id: TypeId,
-    pub(crate) mutable: bool
-}
-
 // /// Coupled with [`Query`], this specifies the list of components to request for the system.
 // /// [`More info`](Query).
 pub trait QueryComponents: Sized {
     /// Whether the implementor requires a mutable reference.
     /// This determines whether the system is shared or exclusive.
     const EXCLUSIVE: bool;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F>;
 }
 
 trait SingularQueryComponent: QueryComponents {
+    const TYPE_ID: TypeId;
     const SINGULAR_EXCLUSIVE: bool;
-    const DESCRIPTOR: QueryComponentDescriptor;
 }
 
 impl SingularQueryComponent for Entity {
+    const TYPE_ID: TypeId = TypeId::of::<Entity>();
     const SINGULAR_EXCLUSIVE: bool = false;
-    const DESCRIPTOR: QueryComponentDescriptor = QueryComponentDescriptor { id: TypeId::of::<Entity>(), mutable: false };
 }
 
 impl<C: Component + 'static> SingularQueryComponent for &C {
+    const TYPE_ID: TypeId = TypeId::of::<C>();
     const SINGULAR_EXCLUSIVE: bool = false;
-    const DESCRIPTOR: QueryComponentDescriptor = QueryComponentDescriptor { id: TypeId::of::<C>(), mutable: false };
 }
 
 impl<C: Component + 'static> SingularQueryComponent for &mut C {
+    const TYPE_ID: TypeId = TypeId::of::<C>();
     const SINGULAR_EXCLUSIVE: bool = true;
-    const DESCRIPTOR: QueryComponentDescriptor = QueryComponentDescriptor { id: TypeId::of::<C>(), mutable: true };
 }
 
 impl<Q0> QueryComponents for Q0
     where Q0: SingularQueryComponent
 {
     const EXCLUSIVE: bool = Q0::SINGULAR_EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
-        todo!()
+        let mut query = Query::empty();
+
+        for entity in entities.entities.iter().filter_map(|x| *x) {
+            let storage = match components.storage.get(&Q0::TYPE_ID()) {
+                Some(s) => s,
+                None => continue
+            };
+
+
+        }
+
+        query
     }
 }
 
@@ -60,7 +57,6 @@ impl<Q0, Q1> QueryComponents for (Q0, Q1)
     where Q0: SingularQueryComponent, Q1: SingularQueryComponent
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
@@ -71,7 +67,6 @@ impl<Q0, Q1, Q2> QueryComponents for (Q0, Q1, Q2)
     where Q0: SingularQueryComponent, Q1: SingularQueryComponent, Q2: SingularQueryComponent
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
@@ -84,7 +79,6 @@ impl<Q0, Q1, Q2, Q3> QueryComponents for (Q0, Q1, Q2, Q3)
         Q2: SingularQueryComponent, Q3: SingularQueryComponent
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()
@@ -97,7 +91,6 @@ impl<Q0, Q1, Q2, Q3, Q4> QueryComponents for (Q0, Q1, Q2, Q3, Q4)
         Q3: SingularQueryComponent, Q4: SingularQueryComponent
 {
     const EXCLUSIVE: bool = Q0::EXCLUSIVE || Q1::EXCLUSIVE || Q2::EXCLUSIVE || Q3::EXCLUSIVE || Q4::EXCLUSIVE;
-    const DESCRIPTORS: &'static [QueryComponentDescriptor] = &[Q0::DESCRIPTOR, Q1::DESCRIPTOR, Q2::DESCRIPTOR, Q3::DESCRIPTOR, Q4::DESCRIPTOR];
 
     fn gather<F: QueryFilters>(entities: &Entities, components: &Components) -> Query<Self, F> {
         todo!()

@@ -102,18 +102,13 @@ pub struct Components {
 }
 
 impl Components {
+    #[inline]
     pub(crate) fn query<Q: QueryComponents, F: QueryFilters>(&self, entities: &Entities) -> Query<Q, F> {
-        let mut collector = Q::gather::<F>(entities, self);
-
-        todo!()
-        // Query::from(collector)
+        Q::gather::<F>(entities, self)
     }
 
     pub(crate) fn query_mut<Q: QueryComponents, F: QueryFilters>(&self) -> Query<Q, F> {
-        // let descriptor = Query::<Q, F>::DESCRIPTOR;
-        let mut gathered = Vec::new();
-
-        Query::from(gathered)
+        todo!()
     }
 
     /// Adds a component to the registry for the specified entity.
