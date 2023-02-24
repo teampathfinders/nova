@@ -51,6 +51,34 @@ impl<C: Component> ComponentStorage<C> {
     } 
 }
 
+pub trait QueryableStorage {
+    fn query<C: Component + ?Sized>(&self, out: *mut C);
+}
+
+impl<'a, T: Component> QueryableStorage for ComponentStorage<T> {
+    fn query<C: Component + ?Sized>(&self, out: *mut C) {
+        debug_assert_eq!(TypeId::of::<C>(), TypeId::of::<T>());
+
+        todo!()
+    }
+}
+
+impl<'a, T: ?Sized> QueryableStorage for Box<T> where T: QueryableStorage {
+    fn query<C: Component + ?Sized>(&self, out: *mut C) {
+        (**self).query(out);
+    }
+}
+
+pub trait SafeQueryableStorage {
+    fn erased_query(&self, out: *mut dyn Component);
+}
+
+impl<T> SafeQueryableStorage for T where T: QueryableStorage {
+    fn erased_query(&self, out: *mut dyn Component) {
+        self.query(out);
+    }
+}
+
 /// Abstraction over a specific component storage.
 /// This allows [`Components`] to store them.
 pub(crate) trait Storage {
