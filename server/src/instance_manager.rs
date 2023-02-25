@@ -277,7 +277,7 @@ impl InstanceManager {
 
         pk.buf = serialized.freeze();
 
-        sess_manager.add_session(
+        let session = sess_manager.add_session(
             udp_socket,
             pk.addr,
             request.mtu,

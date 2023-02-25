@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroU64;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use bytes::{BufMut, Bytes, BytesMut};
@@ -56,8 +57,10 @@ impl Session {
     ///
     /// All connected sessions are notified of the new player
     /// and the new player gets a list of all current players.
-    pub fn handle_local_player_initialized(&self, pk: Bytes) -> VResult<()> {
+    pub fn handle_local_player_initialized(self: &Arc<Self>, pk: Bytes) -> VResult<()> {
         let request = SetLocalPlayerAsInitialized::deserialize(pk)?;
+
+        self.level_manager.add_player(self);
 
         // Add player to other's player lists.
         tracing::info!("{} has connected", self.get_display_name()?);

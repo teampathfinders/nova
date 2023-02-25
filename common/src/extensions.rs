@@ -346,7 +346,7 @@ pub trait WriteExtensions: BufMut + Sized {
     }
 
     fn put_vec3f(&mut self, value: &Vector3f) {
-        let [a, b, c] = value.components();
+        let [a, b, c] = value.components_cloned();
 
         self.put_f32_le(a);
         self.put_f32_le(b);
@@ -354,7 +354,7 @@ pub trait WriteExtensions: BufMut + Sized {
     }
 
     fn put_vec4f(&mut self, value: &Vector4f) {
-        let [a, b, c, d] = value.components();
+        let [a, b, c, d] = value.components_cloned();
 
         self.put_f32_le(a);
         self.put_f32_le(b);
@@ -363,14 +363,14 @@ pub trait WriteExtensions: BufMut + Sized {
     }
 
     fn put_vec2i(&mut self, value: &Vector2i) {
-        let [a, b] = value.components();
+        let [a, b] = value.components_cloned();
 
         self.put_var_i32(a);
         self.put_var_i32(b);
     }
 
     fn put_vec3i(&mut self, value: &Vector3i) {
-        let [a, b, c] = value.components();
+        let [a, b, c] = value.components_cloned();
 
         self.put_var_i32(a);
         self.put_var_i32(b);

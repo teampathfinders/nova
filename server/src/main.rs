@@ -16,6 +16,7 @@ use common::VResult;
 mod command;
 mod config;
 mod crypto;
+mod entity;
 mod instance_manager;
 mod level_manager;
 mod network;

@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use std::time::Duration;
 
-use common::VResult;
+use common::{VResult, Vector3f};
 use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
 use level::ChunkManager;
@@ -13,10 +13,18 @@ use tokio_util::sync::CancellationToken;
 
 use crate::command::Command;
 use crate::config::SERVER_CONFIG;
+use crate::entity::player::{
+    player_movement, ActiveEntity, Player, PlayerBundle, PlayerMoveLabel,
+    Transform,
+};
+use crate::network::packets::GameMode;
+use crate::network::session::Session;
 use crate::network::{
     packets::{GameRule, GameRulesChanged},
     session::SessionManager,
 };
+
+use bevy_ecs::prelude::*;
 
 /// Interval between standard Minecraft ticks.
 const LEVEL_TICK_INTERVAL: Duration = Duration::from_millis(1000 / 20);
@@ -36,6 +44,9 @@ pub struct LevelManager {
     /// The level is ticked 20 times every second.
     tick: AtomicU64,
     token: CancellationToken,
+
+    schedule: Schedule,
+    ecs_world: RwLock<World>,
 }
 
 impl LevelManager {
@@ -50,6 +61,12 @@ impl LevelManager {
 
         let (chunks, chunk_notifier) =
             ChunkManager::new(world_path, autosave_interval, token.clone())?;
+
+        let mut schedule = Schedule::default();
+        schedule.add_stage(
+            PlayerMoveLabel,
+            SystemStage::parallel().with_system(player_movement),
+        );
 
         let manager = Arc::new(Self {
             chunks,
@@ -67,9 +84,27 @@ impl LevelManager {
             session_manager,
             tick: AtomicU64::new(0),
             token,
+            ecs_world: RwLock::new(World::new()),
+            schedule,
         });
 
         Ok((manager, chunk_notifier))
+    }
+
+    pub fn add_player(&self, session: &Arc<Session>) {
+        self.ecs_world.write().spawn(PlayerBundle {
+            entity: ActiveEntity {
+                runtime_id: session.player.read().runtime_id,
+            },
+            player: Player {
+                game_mode: GameMode::Creative,
+                session: Arc::clone(session),
+            },
+            transform: Transform {
+                position: Vector3f::zero(),
+                rotation: Vector3f::zero(),
+            },
+        });
     }
 
     /// Returns the requested command

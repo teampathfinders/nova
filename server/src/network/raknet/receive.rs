@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 
@@ -34,7 +35,7 @@ impl Session {
     ///
     /// If a packet is an ACK or NACK type, it will be responded to accordingly (using [`Session::handle_ack`] and [`Session::handle_nack`]).
     /// Frame batches are processed by [`Session::handle_frame_batch`].
-    pub async fn process_raw_packet(&self, pk: Bytes) -> VResult<bool> {
+    pub async fn process_raw_packet(self: &Arc<Self>, pk: Bytes) -> VResult<bool> {
         *self.raknet.last_update.write() = Instant::now();
 
         if pk.is_empty() {
@@ -71,7 +72,7 @@ impl Session {
     /// * Inserting packets into the compound collector
     /// * Discarding old sequenced frames
     /// * Acknowledging reliable packets
-    async fn handle_frame_batch(&self, pk: Bytes) -> VResult<()> {
+    async fn handle_frame_batch(self: &Arc<Self>, pk: Bytes) -> VResult<()> {
         let batch = FrameBatch::deserialize(pk)?;
         self.raknet
             .client_batch_number
@@ -86,7 +87,7 @@ impl Session {
 
     #[async_recursion]
     async fn handle_frame(
-        &self,
+        self: &Arc<Self>,
         frame: &Frame,
         batch_number: u32,
     ) -> VResult<()> {
@@ -135,7 +136,7 @@ impl Session {
     }
 
     /// Processes an unencapsulated game packet.
-    async fn handle_unframed_packet(&self, mut pk: Bytes) -> VResult<()> {
+    async fn handle_unframed_packet(self: &Arc<Self>, mut pk: Bytes) -> VResult<()> {
         let bytes = pk.as_ref();
 
         let packet_id = *pk.first().expect("Game packet buffer was empty");
@@ -153,7 +154,7 @@ impl Session {
         Ok(())
     }
 
-    async fn handle_game_packet(&self, mut pk: Bytes) -> VResult<()> {
+    async fn handle_game_packet(self: &Arc<Self>, mut pk: Bytes) -> VResult<()> {
         nvassert!(pk.get_u8() == 0xfe);
 
         // Decrypt packet
@@ -205,7 +206,7 @@ impl Session {
     }
 
     async fn handle_decompressed_game_packet(
-        &self,
+        self: &Arc<Self>,
         mut pk: Bytes,
     ) -> VResult<()> {
         let length = pk.get_var_u32()?;
