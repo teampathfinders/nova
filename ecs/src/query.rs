@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, any::TypeId, mem::MaybeUninit};
 
-use crate::{Component, Entity, Components, Entities, World, EntityIter};
+use crate::{Component, Entity, Components, Entities, World, EntityIter, QueryMarker, QueryMarkerImpl};
 
 // /// Coupled with [`Query`], this specifies the list of components to request for the system.
 // /// [`More info`](Query).
@@ -12,7 +12,7 @@ pub trait QueryComponents: Sized {
     fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F>;
 }
 
-trait SingularQueryComponent: QueryComponents {
+pub trait SingularQueryComponent: QueryComponents + Component {
     const TYPE_ID: TypeId;
     const SINGULAR_EXCLUSIVE: bool;
 }
@@ -39,10 +39,11 @@ impl<Q0> QueryComponents for Q0
 
     fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         if let Some(storage) = components.storage.get(&Q0::TYPE_ID) {
-            let mut component: MaybeUninit<Q0> = MaybeUninit::zeroed();
-            storage.erased_query(component.as_mut_ptr());
-
-            let component = unsafe { component.assume_init() };
+            let marker: QueryMarkerImpl<Q0, F> = QueryMarkerImpl {
+                content: None,
+                _marker: PhantomData
+            };
+            storage.erased_query(&marker);
         }
 
         todo!()

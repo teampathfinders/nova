@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 
-use crate::World;
+use crate::{World, Component};
 
 #[derive(Copy, Clone)]
 pub struct EntityRef<'w> {
@@ -25,6 +25,8 @@ impl From<EntityRef<'_>> for Entity {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Entity(NonZeroUsize);
+
+impl Component for Entity {}
 
 /// List of currently alive entities.
 #[derive(Debug)]

@@ -1,9 +1,12 @@
-use std::{any::{TypeId, Any}, collections::HashMap};
+use std::{any::{TypeId, Any}, collections::HashMap, marker::PhantomData};
 
-use crate::{Entity, QueryComponents, QueryFilters, Query, Entities};
+use crate::{Entity, QueryComponents, QueryFilters, Query, Entities, SingularQueryComponent};
 
 /// Represents a component that can be queried by a system.
 pub trait Component {}
+
+impl<'a, T: Component> Component for &'a T {}
+impl<'a, T: Component> Component for &'a mut T {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -51,76 +54,82 @@ impl<C: Component> ComponentStorage<C> {
     } 
 }
 
+pub trait QueryMarker {
+    fn safe(&self);
+}
+
+pub struct QueryMarkerImpl<T: Component, F: QueryFilters> {
+    pub content: Option<T>,
+    pub _marker: PhantomData<F>
+}
+
+impl<Q: SingularQueryComponent, F: QueryFilters> QueryMarker for QueryMarkerImpl<Q, F> {
+    fn safe(&self) {
+        dbg!(std::any::type_name::<Q>());
+        dbg!(std::any::type_name::<F>());
+    }
+}
+
 pub trait QueryableStorage {
-    fn query<C: Component + ?Sized>(&self, out: *mut C);
-}
-
-impl<'a, T: Component> QueryableStorage for ComponentStorage<T> {
-    fn query<C: Component + ?Sized>(&self, out: *mut C) {
-        debug_assert_eq!(TypeId::of::<C>(), TypeId::of::<T>());
-
-        todo!()
-    }
-}
-
-impl<'a, T: ?Sized> QueryableStorage for Box<T> where T: QueryableStorage {
-    fn query<C: Component + ?Sized>(&self, out: *mut C) {
-        (**self).query(out);
-    }
-}
-
-pub trait SafeQueryableStorage {
-    fn erased_query(&self, out: *mut dyn Component);
-}
-
-impl<T> SafeQueryableStorage for T where T: QueryableStorage {
-    fn erased_query(&self, out: *mut dyn Component) {
-        self.query(out);
-    }
-}
-
-/// Abstraction over a specific component storage.
-/// This allows [`Components`] to store them.
-pub(crate) trait Storage {
-    /// Returns the unique ID of the component.
-    fn type_id(&self) -> TypeId;
-    /// Casts self to [`Any`];
-    fn as_any(&self) -> &dyn Any;
-    /// Casts self to a mutable [`Any`].
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
-    fn has_entity(&self, entity: Entity) -> bool;
+    // fn query<C: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<C, F>) -> Option<C>;
+    fn query<M: QueryMarker + ?Sized>(&self, marker: &M);
     /// Deregister is put in the trait so downcasting is not needed.
     /// This is not possible with [`register`](ComponentStorage::register) because
     /// it contains a generic parameter.
     fn deregister(&mut self, entity: Entity);
 }
 
-impl<C: Component + 'static> Storage for ComponentStorage<C> {
-    #[inline]
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<C>()
+impl<'a, T: Component> QueryableStorage for ComponentStorage<T> {
+    // fn query<Q: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<Q, F>) -> Option<Q> {
+    //     // debug_assert_eq!(TypeId::of::<C>(), TypeId::of::<T>());
+    //     dbg!(std::any::type_name::<T>());
+
+    //     todo!()
+    // }
+    fn query<M: QueryMarker + ?Sized>(&self, marker: &M) {
+        marker.safe();
     }
 
-    #[inline]
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn deregister(&mut self, entity: Entity) {
+        todo!()
+    }
+}
+
+impl<T: ?Sized> QueryableStorage for Box<T> where T: QueryableStorage {
+    // fn query<Q: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<Q, F>) -> Option<Q> {
+    //     (**self).query(marker)
+    // }
+
+    fn query<M: QueryMarker + ?Sized>(&self, marker: &M) {
+        (**self).query(marker);
     }
 
-    #[inline]
+    fn deregister(&mut self, entity: Entity) {
+        (**self).deregister(entity);
+    }
+}
+
+pub trait SafeQueryableStorage {
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+
+    fn erased_query(&self, marker: &dyn QueryMarker);
+    /// Deregister is put in the trait so downcasting is not needed.
+    /// This is not possible with [`register`](ComponentStorage::register) because
+    /// it contains a generic parameter.
+    fn deregister(&mut self, entity: Entity);
+}
+
+impl<T: 'static> SafeQueryableStorage for T where T: QueryableStorage {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 
-    #[inline]
-    fn has_entity(&self, entity: Entity) -> bool {
-        self.indices.contains_key(&entity)
+    fn erased_query(&self, out: &dyn QueryMarker) {
+        self.query(out);
     }
 
     fn deregister(&mut self, entity: Entity) {
-        if let Some(index) = self.indices.remove(&entity) {
-            self.storage[index] = None;
-        }
+        self.deregister(entity);
     }
 }
 
@@ -136,7 +145,7 @@ impl<C: Component + 'static> StorageQuery<C> for ComponentStorage<C> {
 
 /// Contains a list of components sorted by component ID.
 pub struct Components {
-    pub(crate) storage: HashMap<TypeId, Box<dyn Storage>>
+    pub(crate) storage: HashMap<TypeId, Box<dyn SafeQueryableStorage>>
 }
 
 impl Components {
@@ -156,12 +165,10 @@ impl Components {
             .entry(type_id)
             .or_insert_with(|| Box::new(ComponentStorage::<C>::new()));
 
-        let storage = entry.as_any_mut().downcast_mut::<ComponentStorage<C>>();
-        if storage.is_none() {
-            unreachable!();
+        if let Some(entry) = entry.as_any_mut().downcast_mut::<ComponentStorage<C>>() {
+            entry.storage.push(Some(component));
+            entry.indices.insert(entity, entry.storage.len() - 1);
         }
-
-        storage.unwrap().register(entity, component);
     }
 
     /// Removes all of an entity's components from the registry.
