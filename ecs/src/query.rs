@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, any::TypeId, mem::MaybeUninit};
 
-use crate::{Component, Entity, Components, Entities, World, EntityIter, QueryMarker, QueryMarkerImpl};
+use crate::{Component, Entity, Components, Entities, World, EntityIter, QueryMarker, QueryMarkerImpl, ComponentStorage, QueryableStorage};
 
 // /// Coupled with [`Query`], this specifies the list of components to request for the system.
 // /// [`More info`](Query).
@@ -49,11 +49,12 @@ impl<Q0> QueryComponents for Q0
 
     fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
         if let Some(storage) = components.storage.get(&Q0::id()) {
-            let marker: QueryMarkerImpl<Q0, F> = QueryMarkerImpl {
+            let mut marker: QueryMarkerImpl<Q0, F> = QueryMarkerImpl {
+                storage: None,
                 content: None,
                 _marker: PhantomData
             };
-            storage.erased_query(&marker);
+            storage.erased_query(&mut marker);
         }
 
         todo!()

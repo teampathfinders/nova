@@ -55,39 +55,39 @@ impl<C: Component> ComponentStorage<C> {
 }
 
 pub trait QueryMarker {
-    fn safe(&self);
+    fn extract(&self);
+    fn set_storage(&mut self, storage: &dyn SafeQueryableStorage);
 }
 
-pub struct QueryMarkerImpl<T: Component, F: QueryFilters> {
+pub struct QueryMarkerImpl<'a, T: Component, F: QueryFilters> {
+    pub(crate) storage: Option<&'a ComponentStorage<T>>,
     pub content: Option<T>,
     pub _marker: PhantomData<F>
 }
 
-impl<Q: SingularQueryComponent, F: QueryFilters> QueryMarker for QueryMarkerImpl<Q, F> {
-    fn safe(&self) {
+impl<'a, Q: SingularQueryComponent, F: QueryFilters> QueryMarker for QueryMarkerImpl<'a, Q, F> {
+    fn extract(&self) {
         dbg!(std::any::type_name::<Q>());
         dbg!(std::any::type_name::<F>());
     }
+
+    fn set_storage<S: QueryableStorage<Q>>(&mut self, storage: S) {
+        self.storage = Some(storage);
+    }
 }
 
-pub trait QueryableStorage {
+pub trait QueryableStorage<T: Component>  {
     // fn query<C: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<C, F>) -> Option<C>;
-    fn query<M: QueryMarker + ?Sized>(&self, marker: &M);
+    fn query<M: QueryMarker + ?Sized>(&self, marker: &mut M);
     /// Deregister is put in the trait so downcasting is not needed.
     /// This is not possible with [`register`](ComponentStorage::register) because
     /// it contains a generic parameter.
     fn deregister(&mut self, entity: Entity);
 }
 
-impl<'a, T: Component> QueryableStorage for ComponentStorage<T> {
-    // fn query<Q: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<Q, F>) -> Option<Q> {
-    //     // debug_assert_eq!(TypeId::of::<C>(), TypeId::of::<T>());
-    //     dbg!(std::any::type_name::<T>());
-
-    //     todo!()
-    // }
-    fn query<M: QueryMarker + ?Sized>(&self, marker: &M) {
-        marker.safe();
+impl<'a, T: Component> QueryableStorage<T> for ComponentStorage<T> {
+    fn query<'b, M: QueryMarker + ?Sized>(&'b self, marker: &'b mut M) {
+        
     }
 
     fn deregister(&mut self, entity: Entity) {
@@ -95,12 +95,8 @@ impl<'a, T: Component> QueryableStorage for ComponentStorage<T> {
     }
 }
 
-impl<T: ?Sized> QueryableStorage for Box<T> where T: QueryableStorage {
-    // fn query<Q: Component, F: QueryFilters>(&self, marker: &QueryMarkerImpl<Q, F>) -> Option<Q> {
-    //     (**self).query(marker)
-    // }
-
-    fn query<M: QueryMarker + ?Sized>(&self, marker: &M) {
+impl<C: Component, T: ?Sized> QueryableStorage<C> for Box<T> where T: QueryableStorage<C> {
+    fn query<M: QueryMarker + ?Sized>(&self, marker: &mut M) {
         (**self).query(marker);
     }
 
@@ -110,21 +106,26 @@ impl<T: ?Sized> QueryableStorage for Box<T> where T: QueryableStorage {
 }
 
 pub trait SafeQueryableStorage {
+    fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
-    fn erased_query(&self, marker: &dyn QueryMarker);
+    fn erased_query(&self, marker: &mut dyn QueryMarker);
     /// Deregister is put in the trait so downcasting is not needed.
     /// This is not possible with [`register`](ComponentStorage::register) because
     /// it contains a generic parameter.
     fn deregister(&mut self, entity: Entity);
 }
 
-impl<T: 'static> SafeQueryableStorage for T where T: QueryableStorage {
+impl<C: Component, T: 'static> SafeQueryableStorage for T where T: QueryableStorage<C> {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 
-    fn erased_query(&self, out: &dyn QueryMarker) {
+    fn erased_query(&self, out: &mut dyn QueryMarker) {
         self.query(out);
     }
 
