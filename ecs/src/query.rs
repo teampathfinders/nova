@@ -13,23 +13,33 @@ pub trait QueryComponents: Sized {
 }
 
 pub trait SingularQueryComponent: QueryComponents + Component {
-    const TYPE_ID: TypeId;
     const SINGULAR_EXCLUSIVE: bool;
+
+    fn id() -> TypeId;
 }
 
 impl SingularQueryComponent for Entity {
-    const TYPE_ID: TypeId = TypeId::of::<Entity>();
     const SINGULAR_EXCLUSIVE: bool = false;
+
+    fn id() -> TypeId {
+        TypeId::of::<Entity>()
+    }
 }
 
 impl<C: Component + 'static> SingularQueryComponent for &C {
-    const TYPE_ID: TypeId = TypeId::of::<C>();
     const SINGULAR_EXCLUSIVE: bool = false;
+
+    fn id() -> TypeId {
+        TypeId::of::<C>()
+    }
 }
 
 impl<C: Component + 'static> SingularQueryComponent for &mut C {
-    const TYPE_ID: TypeId = TypeId::of::<C>();
     const SINGULAR_EXCLUSIVE: bool = true;
+
+    fn id() -> TypeId {
+        TypeId::of::<C>()
+    }
 }
 
 impl<Q0> QueryComponents for Q0
@@ -38,7 +48,7 @@ impl<Q0> QueryComponents for Q0
     const EXCLUSIVE: bool = Q0::SINGULAR_EXCLUSIVE;
 
     fn gather<'c, F: QueryFilters>(entities: &Entities, components: &'c Components) -> Query<'c, Self, F> {
-        if let Some(storage) = components.storage.get(&Q0::TYPE_ID) {
+        if let Some(storage) = components.storage.get(&Q0::id()) {
             let marker: QueryMarkerImpl<Q0, F> = QueryMarkerImpl {
                 content: None,
                 _marker: PhantomData
@@ -109,80 +119,15 @@ pub struct Without<C: Component> {
     _marker: PhantomData<C>
 }
 
-#[derive(Debug)]
-pub enum QueryFilterVariant {
-    Changed,
-    With,
-    Without
-}
-
-pub type QueryFilterDescriptor = (QueryFilterVariant, TypeId);
-
 /// Applies a filter to a component query.
 /// 
 /// This can be used to filter certain components and entities from the request.
 /// Some available filters are [`Changed`], [`With`] and [`Without`].
 pub trait QueryFilters {
-    const DESCRIPTORS: &'static [QueryFilterDescriptor];
+    
 }
 
-impl QueryFilters for () {
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[];
-}
-
-impl<F0> QueryFilters for F0 
-    where F0: SingularQueryFilter
-{
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[F0::DESCRIPTOR];
-}
-
-impl<F0, F1> QueryFilters for (F0, F1) 
-    where 
-        F0: SingularQueryFilter, F1: SingularQueryFilter, 
-{
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[F0::DESCRIPTOR, F1::DESCRIPTOR];
-}
-
-impl<F0, F1, F2> QueryFilters for (F0, F1, F2) 
-    where 
-        F0: SingularQueryFilter, F1: SingularQueryFilter, 
-        F2: SingularQueryFilter
-{
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[F0::DESCRIPTOR, F1::DESCRIPTOR, F2::DESCRIPTOR];
-}
-
-impl<F0, F1, F2, F3> QueryFilters for (F0, F1, F2, F3) 
-    where 
-        F0: SingularQueryFilter, F1: SingularQueryFilter, 
-        F2: SingularQueryFilter, F3: SingularQueryFilter
-{
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[F0::DESCRIPTOR, F1::DESCRIPTOR, F2::DESCRIPTOR, F3::DESCRIPTOR];
-}
-
-impl<F0, F1, F2, F3, F4> QueryFilters for (F0, F1, F2, F3, F4) 
-    where 
-        F0: SingularQueryFilter, F1: SingularQueryFilter, 
-        F2: SingularQueryFilter, F3: SingularQueryFilter, 
-        F4: SingularQueryFilter
-{
-    const DESCRIPTORS: &'static [QueryFilterDescriptor] = &[F0::DESCRIPTOR, F1::DESCRIPTOR, F2::DESCRIPTOR, F3::DESCRIPTOR, F4::DESCRIPTOR];
-}
-
-trait SingularQueryFilter {
-    const DESCRIPTOR: (QueryFilterVariant, TypeId);
-}
-
-impl<C: Component + 'static> SingularQueryFilter for Changed<C> {
-    const DESCRIPTOR: (QueryFilterVariant, TypeId) = (QueryFilterVariant::Changed, TypeId::of::<C>());
-}
-
-impl<C: Component + 'static> SingularQueryFilter for With<C> {
-    const DESCRIPTOR: (QueryFilterVariant, TypeId) = (QueryFilterVariant::With, TypeId::of::<C>());
-}
-
-impl<C: Component + 'static> SingularQueryFilter for Without<C> {
-    const DESCRIPTOR: (QueryFilterVariant, TypeId) = (QueryFilterVariant::Without, TypeId::of::<C>());
-}
+impl QueryFilters for () {}
 
 /// Queries are used by systems to request certain components.
 /// 
