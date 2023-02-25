@@ -97,23 +97,24 @@ impl Session {
 
         self.initialized.store(false, Ordering::SeqCst);
 
-        if let Ok(display_name) = self.get_display_name() {
-            if let Ok(uuid) = self.get_uuid() {
-                tracing::info!("{display_name} has disconnected");
-                let _ = self.broadcast_others(TextMessage {
-                    message: format!("§e{display_name} has left the server."),
-                    message_type: MessageType::System,
-                    needs_translation: false,
-                    parameters: vec![],
-                    platform_chat_id: "".to_owned(),
-                    source_name: "".to_owned(),
-                    xuid: "".to_owned(),
-                });
+        todo!();
+        // if let Ok(display_name) = self.get_display_name() {
+        //     if let Ok(uuid) = self.get_uuid() {
+        //         tracing::info!("{display_name} has disconnected");
+        //         let _ = self.broadcast_others(TextMessage {
+        //             message: format!("§e{display_name} has left the server."),
+        //             message_type: MessageType::System,
+        //             needs_translation: false,
+        //             parameters: vec![],
+        //             platform_chat_id: "".to_owned(),
+        //             source_name: "".to_owned(),
+        //             xuid: "".to_owned(),
+        //         });
 
-                let _ = self
-                    .broadcast_others(PlayerListRemove { entries: &[*uuid] });
-            }
-        }
+        //         let _ = self
+        //             .broadcast_others(PlayerListRemove { entries: &[*uuid] });
+        //     }
+        // }
         self.active.cancel();
     }
 

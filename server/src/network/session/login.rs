@@ -57,52 +57,50 @@ impl Session {
     ///
     /// All connected sessions are notified of the new player
     /// and the new player gets a list of all current players.
-    pub fn handle_local_player_initialized(self: &Arc<Self>, pk: Bytes) -> VResult<()> {
+    pub fn handle_local_player_initialized(&self, pk: Bytes) -> VResult<()> {
         let request = SetLocalPlayerAsInitialized::deserialize(pk)?;
 
-        self.level_manager.add_player(self);
-
         // Add player to other's player lists.
-        tracing::info!("{} has connected", self.get_display_name()?);
+        // tracing::info!("{} has connected", self.get_display_name()?);
 
         // Tell rest of server that this client has joined...
-        {
-            let identity_data = self.get_identity_data()?;
-            let user_data = self.get_user_data()?;
+        // {
+        //     let identity_data = self.get_identity_data()?;
+        //     let user_data = self.get_user_data()?;
 
-            // self.broadcast_others(PlayerListAdd {
-            //     entries: &[PlayerListAddEntry {
-            //         uuid: identity_data.uuid,
-            //         entity_id: self.player.read().runtime_id as i64,
-            //         username: &identity_data.display_name,
-            //         xuid: identity_data.xuid,
-            //         device_os: user_data.build_platform,
-            //         skin: self.player.read().skin.as_ref().ok_or_else(
-            //             || {
-            //                 error!(
-            //                     NotInitialized,
-            //                     "Skin data has not been initialised"
-            //                 )
-            //             },
-            //         )?,
-            //         host: false,
-            //     }],
-            // })?;
+        //     // self.broadcast_others(PlayerListAdd {
+        //     //     entries: &[PlayerListAddEntry {
+        //     //         uuid: identity_data.uuid,
+        //     //         entity_id: self.player.read().runtime_id as i64,
+        //     //         username: &identity_data.display_name,
+        //     //         xuid: identity_data.xuid,
+        //     //         device_os: user_data.build_platform,
+        //     //         skin: self.player.read().skin.as_ref().ok_or_else(
+        //     //             || {
+        //     //                 error!(
+        //     //                     NotInitialized,
+        //     //                     "Skin data has not been initialised"
+        //     //                 )
+        //     //             },
+        //     //         )?,
+        //     //         host: false,
+        //     //     }],
+        //     // })?;
 
-            self.broadcast_others(TextMessage {
-                message: format!(
-                    "§e{} has joined the server.",
-                    identity_data.display_name
-                ),
-                needs_translation: false,
-                parameters: vec![],
-                source_name: "".to_string(),
-                platform_chat_id: "".to_string(),
-                message_type: MessageType::System,
-                xuid: "".to_string(),
-            })?;
-        }
-        self.initialized.store(true, Ordering::SeqCst);
+        //     self.broadcast_others(TextMessage {
+        //         message: format!(
+        //             "§e{} has joined the server.",
+        //             identity_data.display_name
+        //         ),
+        //         needs_translation: false,
+        //         parameters: vec![],
+        //         source_name: "".to_string(),
+        //         platform_chat_id: "".to_string(),
+        //         message_type: MessageType::System,
+        //         xuid: "".to_string(),
+        //     })?;
+        // }
+        // self.initialized.store(true, Ordering::SeqCst);
 
         // ...then tell the client about all the other players.
         // TODO
@@ -129,7 +127,7 @@ impl Session {
         let start_game = StartGame {
             entity_id: 1,
             runtime_id: 1,
-            game_mode: self.get_game_mode(),
+            game_mode: GameMode::Creative, // TODO
             position: Vector3f::from([0.0, 50.0, 0.0]),
             rotation: Vector2f::from([0.0, 0.0]),
             world_seed: 69420,
@@ -249,7 +247,7 @@ impl Session {
     }
 
     /// Handles a [`Login`] packet.
-    pub async fn handle_login(&self, pk: Bytes) -> VResult<()> {
+    pub async fn handle_login(self: &Arc<Session>, pk: Bytes) -> VResult<()> {
         let request = Login::deserialize(pk);
         let request = match request {
             Ok(r) => r,
@@ -261,9 +259,7 @@ impl Session {
 
         let (encryptor, jwt) = Encryptor::new(&request.identity.public_key)?;
 
-        self.identity.set(request.identity)?;
-        self.user_data.set(request.user_data)?;
-        self.player.write().skin = Some(request.skin);
+        self.level_manager.add_player(self, request);
 
         // Flush packets before enabling encryption
         self.flush().await?;

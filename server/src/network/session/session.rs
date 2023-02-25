@@ -7,6 +7,7 @@ use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 
 use aes::cipher::typenum::NonZero;
+use bevy_ecs::prelude::Entity;
 use bytes::{Bytes, BytesMut};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard};
 use tokio::net::UdpSocket;
@@ -29,36 +30,12 @@ use common::{error, VResult};
 
 use super::SessionManager;
 
-static RUNTIME_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
-
-#[derive(Debug)]
-pub struct PlayerData {
-    /// Position of the player.
-    pub position: Vector3f,
-    /// Rotation of the player.
-    /// x and y components are general rotation.
-    /// z component is head yaw.
-    pub rotation: Vector3f,
-    /// Game mode.
-    pub game_mode: GameMode,
-    /// General permission level.
-    pub permission_level: PermissionLevel,
-    /// The client's skin.
-    pub skin: Option<Skin>,
-    /// Runtime ID.
-    pub runtime_id: u64,
-}
-
 /// Sessions directly correspond to clients connected to the server.
 ///
 /// Anything that has to do with specific clients must be communicated with their associated sessions.
 /// The server does not interact with clients directly, everything is done through these sessions.
 #[derive(Debug)]
 pub struct Session {
-    /// Identity data such as XUID and display name.
-    pub identity: OnceCell<IdentityData>,
-    /// Extra user data, such as device OS and language.
-    pub user_data: OnceCell<UserData>,
     /// Used to encrypt and decrypt packets.
     pub encryptor: OnceCell<Encryptor>,
     /// Whether the client supports the chunk cache.
@@ -76,10 +53,9 @@ pub struct Session {
 
     /// Current tick of this session, this is increased every [`TICK_INTERVAL`].
     pub current_tick: AtomicU64,
-    /// Minecraft-specific data.
-    pub player: RwLock<PlayerData>,
     /// Raknet-specific data.
     pub raknet: RaknetData,
+    pub entity: OnceCell<Entity>
 }
 
 impl Session {
@@ -94,8 +70,6 @@ impl Session {
         guid: u64,
     ) -> Arc<Self> {
         let session = Arc::new(Self {
-            identity: OnceCell::new(),
-            user_data: OnceCell::new(),
             encryptor: OnceCell::new(),
             cache_support: OnceCell::new(),
             initialized: AtomicBool::new(false),
@@ -105,14 +79,7 @@ impl Session {
             active: CancellationToken::new(),
 
             current_tick: AtomicU64::new(0),
-            player: RwLock::new(PlayerData {
-                position: Vector3f::from([23.0, 23.0, 2.0]),
-                rotation: Vector3f::from([0.0; 3]),
-                runtime_id: RUNTIME_ID_COUNTER.fetch_add(1, Ordering::SeqCst),
-                game_mode: GameMode::Survival,
-                permission_level: PermissionLevel::Member,
-                skin: None,
-            }),
+            entity: OnceCell::new(),
             raknet: RaknetData {
                 udp_socket: ipv4_socket,
                 mtu,
@@ -146,88 +113,10 @@ impl Session {
     }
 
     #[inline]
-    pub fn get_identity_data(&self) -> VResult<&IdentityData> {
-        self.identity.get().ok_or_else(|| {
-            error!(NotInitialized, "Identity data has not been initialised yet")
-        })
-    }
-
-    #[inline]
-    pub fn get_user_data(&self) -> VResult<&UserData> {
-        self.user_data.get().ok_or_else(|| {
-            error!(NotInitialized, "User data has not been initialised yet")
-        })
-    }
-
-    #[inline]
-    pub fn get_game_mode(&self) -> GameMode {
-        self.player.read().game_mode
-    }
-
-    #[inline]
-    pub fn get_position(&self) -> Vector3f {
-        self.player.read().position.clone()
-    }
-
-    #[inline]
-    pub fn get_rotation(&self) -> Vector3f {
-        self.player.read().rotation.clone()
-    }
-
-    #[inline]
-    pub fn get_permission_level(&self) -> PermissionLevel {
-        self.player.read().permission_level
-    }
-
-    /// Retrieves the identity of the client.
-    #[inline]
-    pub fn get_uuid(&self) -> VResult<&Uuid> {
-        let identity = self.identity.get().ok_or_else(|| {
-            error!(
-                NotInitialized,
-                "Identity ID data has not been initialised yet"
-            )
-        })?;
-        Ok(&identity.uuid)
-    }
-
-    /// Retrieves the XUID of the client.
-    #[inline]
-    pub fn get_xuid(&self) -> VResult<u64> {
-        let identity = self.identity.get().ok_or_else(|| {
-            error!(NotInitialized, "XUID data has not been initialised yet")
-        })?;
-        Ok(identity.xuid)
-    }
-
-    /// Retrieves the display name of the client.
-    #[inline]
-    pub fn get_display_name(&self) -> VResult<&str> {
-        let identity = self.identity.get().ok_or_else(|| {
-            error!(
-                NotInitialized,
-                "Display name data has not been initialised yet"
-            )
-        })?;
-        Ok(&identity.display_name)
-    }
-
-    #[inline]
     pub fn get_encryptor(&self) -> VResult<&Encryptor> {
         self.encryptor.get().ok_or_else(|| {
             error!(NotInitialized, "Encryption has not been initialised yet")
         })
-    }
-
-    #[inline]
-    pub fn get_device_os(&self) -> VResult<DeviceOS> {
-        let data = self.user_data.get().ok_or_else(|| {
-            error!(
-                NotInitialized,
-                "Device OS data has not been initialised yet"
-            )
-        })?;
-        Ok(data.build_platform)
     }
 
     /// Returns the randomly generated GUID given by the client itself.

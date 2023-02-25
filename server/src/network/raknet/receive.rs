@@ -53,14 +53,14 @@ impl Session {
     }
 
     pub fn process_broadcast(&self, pk: BroadcastPacket) -> VResult<()> {
-        if let Ok(xuid) = self.get_xuid() {
-            if let Some(sender) = pk.sender {
-                if sender.get() == xuid {
-                    // Source is self, do not send.
-                    return Ok(());
-                }
-            }
-        }
+        // if let Ok(xuid) = self.get_xuid() {
+        //     if let Some(sender) = pk.sender {
+        //         if sender.get() == xuid {
+        //             // Source is self, do not send.
+        //             return Ok(());
+        //         }
+        //     }
+        // }
 
         self.send_serialized(pk.content, DEFAULT_SEND_CONFIG)
     }

@@ -73,7 +73,7 @@ impl SessionManager {
         let session = Session::new(
             self.broadcast.clone(),
             receiver,
-            level_manager,
+            level_manager.clone(),
             ipv4_socket,
             address,
             mtu,
@@ -85,9 +85,12 @@ impl SessionManager {
         {
             let list = self.list.clone();
             let session = session.clone();
-
+        
             tokio::spawn(async move {
                 session.cancelled().await;
+                if let Some(entity) = session.entity.get() {
+                    level_manager.remove_player(*entity);
+                }
                 list.remove(&session.raknet.address);
             });
         }
@@ -118,15 +121,16 @@ impl SessionManager {
                         // Session incoming queue is full.
                         // If after a 20 ms timeout it is still full, destroy the session,
                         // it probably froze.
-                        let xuid = session
-                            .1
-                            .get_xuid()
-                            .map(|x| x.to_string())
-                            .unwrap_or("unknown".to_string());
+                        todo!();
+                        // let xuid = session
+                        //     .1
+                        //     .get_xuid()
+                        //     .map(|x| x.to_string())
+                        //     .unwrap_or("unknown".to_string());
 
-                        tracing::error!(
-                            "It seems like session (with XUID {xuid}) is hanging. Closing it"
-                        );
+                        // tracing::error!(
+                        //     "It seems like session (with XUID {xuid}) is hanging. Closing it"
+                        // );
 
                         // Attempt to send a disconnect packet.
                         let _ = session.1.kick(DISCONNECTED_TIMEOUT);

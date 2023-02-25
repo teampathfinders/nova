@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -6,6 +6,7 @@ use common::{VResult, Vector3f};
 use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
 use level::ChunkManager;
+use p384::elliptic_curve::rand_core::le;
 use parking_lot::{RwLock, RwLockReadGuard};
 use tokio::sync::oneshot::Receiver;
 use tokio::task::JoinHandle;
@@ -15,9 +16,11 @@ use crate::command::Command;
 use crate::config::SERVER_CONFIG;
 use crate::entity::player::{
     player_movement, ActiveEntity, Player, PlayerBundle, PlayerMoveLabel,
-    Transform,
+    Transform, broadcast_event_handler,
 };
-use crate::network::packets::GameMode;
+use crate::network::Skin;
+use crate::network::packets::{GameMode, login};
+use crate::network::packets::login::{PermissionLevel, Login};
 use crate::network::session::Session;
 use crate::network::{
     packets::{GameRule, GameRulesChanged},
@@ -28,6 +31,7 @@ use bevy_ecs::prelude::*;
 
 /// Interval between standard Minecraft ticks.
 const LEVEL_TICK_INTERVAL: Duration = Duration::from_millis(1000 / 20);
+static RUNTIME_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
 pub struct LevelManager {
@@ -45,7 +49,7 @@ pub struct LevelManager {
     tick: AtomicU64,
     token: CancellationToken,
 
-    schedule: Schedule,
+    schedule: RwLock<Schedule>,
     ecs_world: RwLock<World>,
 }
 
@@ -65,7 +69,9 @@ impl LevelManager {
         let mut schedule = Schedule::default();
         schedule.add_stage(
             PlayerMoveLabel,
-            SystemStage::parallel().with_system(player_movement),
+            SystemStage::parallel()
+                .with_system(player_movement)
+                .with_system(broadcast_event_handler)
         );
 
         let manager = Arc::new(Self {
@@ -85,26 +91,41 @@ impl LevelManager {
             tick: AtomicU64::new(0),
             token,
             ecs_world: RwLock::new(World::new()),
-            schedule,
+            schedule: RwLock::new(schedule),
+        });
+
+        let clone = manager.clone();
+        tokio::spawn(async move {
+            clone.level_ticker_job().await;
         });
 
         Ok((manager, chunk_notifier))
     }
 
-    pub fn add_player(&self, session: &Arc<Session>) {
+    pub fn add_player(&self, session: &Arc<Session>, login_data: Login) -> Entity {
         self.ecs_world.write().spawn(PlayerBundle {
             entity: ActiveEntity {
-                runtime_id: session.player.read().runtime_id,
+                runtime_id: RUNTIME_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
             },
             player: Player {
+                username: login_data.identity.display_name,
+                xuid: login_data.identity.xuid,
+                uuid: login_data.identity.uuid,
                 game_mode: GameMode::Creative,
+                permission_level: PermissionLevel::Member,
+                skin: login_data.skin,
                 session: Arc::clone(session),
+                device_os: login_data.user_data.build_platform
             },
             transform: Transform {
                 position: Vector3f::zero(),
                 rotation: Vector3f::zero(),
             },
-        });
+        }).id()
+    }
+    
+    pub fn remove_player(&self, entity: Entity) {
+        self.ecs_world.write().despawn(entity);
     }
 
     /// Returns the requested command
@@ -168,5 +189,13 @@ impl LevelManager {
 
         self.session_manager
             .broadcast(GameRulesChanged { game_rules });
+    }
+
+    async fn level_ticker_job(self: Arc<Self>) {
+        let mut interval = tokio::time::interval(LEVEL_TICK_INTERVAL);
+        while !self.token.is_cancelled() {
+            self.schedule.write().run(&mut self.ecs_world.write());
+            interval.tick().await;
+        }
     }
 }

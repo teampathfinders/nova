@@ -52,13 +52,14 @@ impl Session {
         &self,
         pk: P,
     ) -> VResult<()> {
-        self.broadcast.send(BroadcastPacket::new(
-            pk,
-            Some(
-                NonZeroU64::new(self.get_xuid()?)
-                    .ok_or_else(|| error!(NotInitialized, "XUID was 0"))?,
-            ),
-        )?)?;
+        todo!();
+        // self.broadcast.send(BroadcastPacket::new(
+        //     pk,
+        //     Some(
+        //         NonZeroU64::new(self.get_xuid()?)
+        //             .ok_or_else(|| error!(NotInitialized, "XUID was 0"))?,
+        //     ),
+        // )?)?;
 
         Ok(())
     }
